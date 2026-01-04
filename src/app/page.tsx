@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -11,11 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, Sparkles, Loader2, Edit, Users, Pencil } from 'lucide-react';
-import { suggestCalculations } from '@/ai/flows/suggest-calculations';
-import type { SuggestCalculationsOutput } from '@/ai/flows/suggest-calculations';
+import { RefreshCw, Edit, Users, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { SuggestionsSheet } from '@/app/components/suggestions-sheet';
 import { UserInputDialog } from '@/app/components/user-input-dialog';
 import { RenameDialog } from '@/app/components/rename-dialog';
 
@@ -65,9 +62,6 @@ const initialUsers = generateInitialUsers();
 
 export default function Home() {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isSuggesting, startSuggestionTransition] = useTransition();
   const { toast } = useToast();
 
   const [isInputDialogOpen, setIsInputDialogOpen] = useState(false);
@@ -131,46 +125,6 @@ export default function Home() {
 
   const handleReset = () => {
     setUsers(generateInitialUsers());
-    setSuggestions([]);
-  };
-
-  const handleSuggest = () => {
-    setIsSheetOpen(true);
-    startSuggestionTransition(async () => {
-      try {
-        const allRowsHaveData = users.every(user => 
-            user.outputs.every(output => {
-                return output.inputs.length === 6 && output.inputs.every(val => val !== '');
-            })
-        );
-
-        if (!allRowsHaveData) {
-            toast({
-                variant: 'destructive',
-                title: 'Incomplete Data',
-                description: 'Please ensure all 6 inputs are filled for every output row before requesting suggestions.',
-            });
-            return;
-        }
-
-        const inputForAI = users.flatMap(user => 
-            user.outputs.map(output => 
-                output.inputs.map(val => Number(val) || 0)
-            )
-        );
-
-        const result: SuggestCalculationsOutput = await suggestCalculations({ userInputs: inputForAI });
-        setSuggestions(result.suggestions);
-      } catch (error) {
-        console.error('AI suggestion error:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not fetch AI suggestions. Please try again.',
-        });
-        setSuggestions([]);
-      }
-    });
   };
 
   const memoizedTableBody = useMemo(() => (
@@ -229,19 +183,6 @@ export default function Home() {
             <Button variant="outline" onClick={handleReset}>
               <RefreshCw className="mr-2 h-4 w-4" /> Reset
             </Button>
-            <Button
-              onClick={handleSuggest}
-              disabled={isSuggesting}
-              style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
-              className="hover:bg-accent/90"
-            >
-              {isSuggesting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              Suggest Formulas
-            </Button>
           </div>
         </header>
 
@@ -266,12 +207,6 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
-      <SuggestionsSheet
-        open={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
-        suggestions={suggestions}
-        isLoading={isSuggesting}
-      />
       {currentOutput && (
         <UserInputDialog
           isOpen={isInputDialogOpen}
