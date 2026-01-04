@@ -166,7 +166,9 @@ export default function Home() {
                 </div>
               </TableCell>
             )}
-            <TableCell className="font-medium text-foreground/80">{user.name}</TableCell>
+            <TableCell className="font-medium text-foreground/80">
+              {users.filter(otherUser => otherUser.id !== user.id).map(otherUser => otherUser.name).join(', ')}
+            </TableCell>
             <TableCell>
               <Button
                 variant="outline"
@@ -229,7 +231,7 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">User</TableHead>
-                    <TableHead className="w-[120px]">食</TableHead>
+                    <TableHead className="w-[200px]">食</TableHead>
                     <TableHead className="w-[400px]">Inputs (6 per Output)</TableHead>
                     <TableHead className="text-center w-[150px]">Output Sum</TableHead>
                   </TableRow>
