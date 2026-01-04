@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -16,51 +16,22 @@ import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
 
-interface OutputData {
-  id: number;
-  name: string;
-  inputs: (number | string)[];
-  outputSum: number | null;
-  displayUserId: number;
-  winValue: number | null;
-}
-
 interface UserData {
   id: number;
   name: string;
-  outputs: OutputData[];
+  winValues: { [opponentId: number]: number };
 }
 
 const generateInitialUsers = (): UserData[] => {
   const userCount = 4;
-  const outputCount = 3;
-  const users = Array.from({ length: userCount }, (_, i) => ({
+  return Array.from({ length: userCount }, (_, i) => ({
     id: i + 1,
     name: `User ${i + 1}`,
-    outputs: [] as OutputData[],
+    winValues: {},
   }));
-
-  users.forEach((user, userIndex) => {
-    const otherUsers = users.filter(u => u.id !== user.id);
-    user.outputs = Array.from({ length: outputCount }, (_, j) => {
-      const displayUser = otherUsers[j % otherUsers.length];
-      return {
-        id: j + 1,
-        name: user.name,
-        inputs: Array(6).fill(''),
-        outputSum: 0,
-        displayUserId: displayUser.id,
-        winValue: null,
-      };
-    });
-  });
-
-  return users;
 };
 
-
 const initialUsers = generateInitialUsers();
-
 
 export default function Home() {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
@@ -71,35 +42,25 @@ export default function Home() {
   
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
 
-  
   const handleOpenWinActionDialog = (user: UserData) => {
     setCurrentUserForWinAction(user);
     setIsWinActionDialogOpen(true);
   };
 
-
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
     setUsers(prevUsers => {
-      // Find the main user and update their specific output's winValue
-      const newUsers = prevUsers.map(user => {
+      return prevUsers.map(user => {
         if (user.id === mainUserId) {
-          const newOutputs = user.outputs.map(output => {
-            if (output.displayUserId === targetUserId) {
-              return { ...output, winValue: (output.winValue || 0) + value };
-            }
-            return output;
-          });
-          return { ...user, outputs: newOutputs };
+          const newWinValues = { ...user.winValues };
+          newWinValues[targetUserId] = (newWinValues[targetUserId] || 0) + value;
+          return { ...user, winValues: newWinValues };
         }
         return user;
       });
-  
-      return newUsers;
     });
     setIsWinActionDialogOpen(false);
   };
   
-
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     setUsers((prevUsers) => {
       const newUsers = prevUsers.map((user) => {
@@ -108,10 +69,6 @@ export default function Home() {
           return {
             ...user,
             name: updatedUser.name,
-            outputs: user.outputs.map((output) => ({
-              ...output,
-              name: updatedUser.name, // Only update the row's owner name
-            })),
           };
         }
         return user;
@@ -130,53 +87,61 @@ export default function Home() {
     users.forEach(u => scores[u.id] = 0);
   
     users.forEach(user => {
-      user.outputs.forEach(output => {
-        const displayUser = users.find(u => u.id === output.displayUserId);
-        if (displayUser) {
-          const score = (output.outputSum || 0) + (output.winValue || 0);
-          scores[user.id] += score;
-          scores[output.displayUserId] -= score;
-        }
+      Object.entries(user.winValues).forEach(([opponentId, winValue]) => {
+        const score = winValue || 0;
+        scores[user.id] += score;
+        scores[Number(opponentId)] -= score;
       });
     });
   
     return scores;
   }, [users]);
 
+  const opponentUsers = (userId: number) => users.filter(u => u.id !== userId);
+
   const memoizedTableBody = useMemo(() => (
     <TableBody>
-      {users.map((user) =>
-        user.outputs.map((output, outputIndex) => {
-          const displayUser = users.find(u => u.id === output.displayUserId);
-
-          return (
-            <TableRow key={`${user.id}-${output.id}`}>
-              {outputIndex === 0 && (
-                <TableCell className="font-semibold text-foreground/90 align-top" rowSpan={user.outputs.length}>
-                  <div className="flex flex-col gap-2 items-start">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary"/>
-                      {user.name}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
-                       食胡
-                    </Button>
-                    <div className="font-bold text-xl mt-2">
-                        Total: {totalScores[user.id].toLocaleString()}
-                    </div>
-                  </div>
+      {users.map((user) => {
+        const opponents = opponentUsers(user.id);
+        return (
+          <TableRow key={user.id}>
+            <TableCell className="font-semibold text-foreground/90 align-top">
+              <div className="flex flex-col gap-2 items-start">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary"/>
+                  {user.name}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
+                   食胡
+                </Button>
+                <div className="font-bold text-xl mt-2">
+                    Total: {totalScores[user.id]?.toLocaleString() ?? 0}
+                </div>
+              </div>
+            </TableCell>
+            {opponents.map(opponent => (
+                <TableCell key={opponent.id} className="font-semibold text-center text-accent text-lg transition-all duration-300">
+                    {(user.winValues[opponent.id] || 0).toLocaleString()}
                 </TableCell>
-              )}
-              <TableCell className="font-semibold text-center text-accent text-lg transition-all duration-300">
-                {output.winValue?.toLocaleString() ?? '0'}
-              </TableCell>
-            </TableRow>
-          );
-        })
-      )}
+            ))}
+          </TableRow>
+        );
+      })}
     </TableBody>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [users, totalScores]);
+
+  const tableOpponentHeaders = useMemo(() => {
+    if (users.length === 0) return null;
+    const firstUser = users[0];
+    const opponents = opponentUsers(firstUser.id);
+    return (
+        opponents.map(opponent => (
+            <TableHead key={opponent.id} className="text-center w-[150px]">
+                {users.find(u => u.id === opponent.id)?.name}
+            </TableHead>
+        ))
+    );
+  }, [users]);
 
 
   return (
@@ -206,7 +171,11 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">User</TableHead>
-                    <TableHead className="text-center w-[150px]">番數</TableHead>
+                    <TableHead colSpan={users.length - 1} className="text-center w-[150px]">番數</TableHead>
+                  </TableRow>
+                  <TableRow>
+                    <TableHead></TableHead>
+                    {tableOpponentHeaders}
                   </TableRow>
                 </TableHeader>
                 {memoizedTableBody}
