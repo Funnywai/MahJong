@@ -104,8 +104,6 @@ export default function Home() {
     
     updateLaCounts(mainUserId, [targetUserId]);
 
-    const laMultiplier = (laCounts[mainUserId]?.[targetUserId] || 0) + 1;
-
     setUsers(prevUsers => {
       let finalValue = value;
       const dealerBonus = 2 * consecutiveWins - 1;
@@ -115,8 +113,6 @@ export default function Home() {
       } else if (targetUserId === dealerId) {
         finalValue += dealerBonus;
       }
-      
-      finalValue *= laMultiplier;
   
       return prevUsers.map(user => {
         if (user.id === mainUserId) {
@@ -144,14 +140,12 @@ export default function Home() {
             if (user.id === mainUserId) {
                 const newWinValues = { ...user.winValues };
                 opponentIds.forEach(opponentId => {
-                    const laMultiplier = (laCounts[mainUserId]?.[opponentId] || 0) + 1;
                     let scoreToAdd = value;
                     if (isDealerWinning) {
                         scoreToAdd += dealerBonus;
                     } else if (opponentId === dealerId) {
                         scoreToAdd += dealerBonus;
                     }
-                    scoreToAdd *= laMultiplier;
                     newWinValues[opponentId] = (newWinValues[opponentId] || 0) + scoreToAdd;
                 });
                 return { ...user, winValues: newWinValues };
