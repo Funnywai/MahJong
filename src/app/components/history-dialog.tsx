@@ -43,7 +43,7 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
   const handleExportCSV = () => {
     if (!history.length || !users.length) return;
 
-    const headers = ['Action', ...users.map(u => u.name)];
+    const headers = [...users.map(u => u.name)];
     let csvContent = headers.join(',') + '\n';
 
     history.slice().reverse().forEach(state => {
@@ -51,7 +51,7 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
       const scoreChanges = users.map(user => {
         return state.scoreChanges.find(sc => sc.userId === user.id)?.change ?? 0;
       });
-      const row = [`"${action}"`, ...scoreChanges].join(',');
+      const row = [...scoreChanges].join(',');
       csvContent += row + '\n';
     });
 

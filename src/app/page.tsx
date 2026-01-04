@@ -11,12 +11,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
 import { ZimoActionDialog } from '@/app/components/zimo-action-dialog';
 import { HistoryDialog } from '@/app/components/history-dialog';
+import { SeatChangeDialog } from '@/app/components/seat-change-dialog';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -67,6 +68,7 @@ export default function Home() {
   const [isWinActionDialogOpen, setIsWinActionDialogOpen] = useState(false);
   const [isZimoActionDialogOpen, setIsZimoActionDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [isSeatChangeDialogOpen, setIsSeatChangeDialogOpen] = useState(false);
   
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
   const [dealerId, setDealerId] = useState<number>(1);
@@ -234,6 +236,12 @@ export default function Home() {
     setIsRenameDialogOpen(false);
   };
 
+  const handleSaveSeatChange = (newUsers: UserData[]) => {
+    saveStateToHistory('Change Seats', []);
+    setUsers(newUsers);
+    setIsSeatChangeDialogOpen(false);
+  };
+
   const handleReset = () => {
     saveStateToHistory('Reset Game', []);
     setUsers(prevUsers => 
@@ -347,6 +355,9 @@ export default function Home() {
             <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
               <Pencil className="mr-2 h-4 w-4" /> Rename
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
+              <Shuffle className="mr-2 h-4 w-4" /> 換位
+            </Button>
             <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
               <HistoryIcon className="mr-2 h-4 w-4" /> Restore
             </Button>
@@ -386,6 +397,12 @@ export default function Home() {
         users={users}
         onSave={handleSaveUserNames}
        />
+      <SeatChangeDialog
+        isOpen={isSeatChangeDialogOpen}
+        onClose={() => setIsSeatChangeDialogOpen(false)}
+        users={users}
+        onSave={handleSaveSeatChange}
+      />
       {currentUserForWinAction && (
         <WinActionDialog
           isOpen={isWinActionDialogOpen}
@@ -413,3 +430,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
