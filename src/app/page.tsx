@@ -286,9 +286,9 @@ export default function Home() {
             const laCount = lastWinnerId != null && laCounts[lastWinnerId]?.[user.id];
             return (
               <TableHead key={user.id} className="text-center w-[120px] p-2">
-                  {user.name}
+                  <div>{user.name}</div>
                   {laCount > 0 && (
-                      <span className="text-red-500 ml-1 font-bold">拉{laCount}</span>
+                      <div className="text-red-500 font-bold">拉{laCount}</div>
                   )}
               </TableHead>
             )
