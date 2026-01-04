@@ -165,6 +165,7 @@ export default function Home() {
     updateLaCounts(mainUserId, [targetUserId]);
 
     setUsers(prevUsers => {
+      const isNewWinner = mainUserId !== lastWinnerId;
       const winnerData = prevUsers.find(u => u.id === mainUserId);
       
       return prevUsers.map(user => {
@@ -172,6 +173,9 @@ export default function Home() {
           const newWinValues = { ...user.winValues };
           newWinValues[targetUserId] = finalValue;
           return { ...user, winValues: newWinValues };
+        }
+        if (isNewWinner) {
+            return { ...user, winValues: {} };
         }
         if (user.id !== mainUserId) {
           const newWinValues = { ...user.winValues };
@@ -216,6 +220,7 @@ export default function Home() {
     updateLaCounts(mainUserId, opponentIds);
 
     setUsers(prevUsers => {
+        const isNewWinner = mainUserId !== lastWinnerId;
         return prevUsers.map(user => {
             if (user.id === mainUserId) {
                 const newWinValues = { ...user.winValues };
@@ -223,6 +228,9 @@ export default function Home() {
                     newWinValues[parseInt(opponentId)] = (newWinValues[parseInt(opponentId)] || 0) + score;
                 });
                 return { ...user, winValues: newWinValues };
+            }
+             if (isNewWinner) {
+                return { ...user, winValues: {} };
             }
             if (user.id !== mainUserId) {
               const newWinValues = { ...user.winValues };
