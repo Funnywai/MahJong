@@ -201,8 +201,6 @@ export default function Home() {
         </header>
 
         <Card className="shadow-lg border-2 border-primary/10">
-          <CardHeader>
-          </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
