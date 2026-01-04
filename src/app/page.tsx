@@ -30,6 +30,15 @@ interface LaCounts {
   };
 }
 
+interface GameState {
+  users: UserData[];
+  laCounts: LaCounts;
+  lastWinnerId: number | null;
+  dealerId: number;
+  consecutiveWins: number;
+}
+
+
 const generateInitialUsers = (): UserData[] => {
   const userCount = 4;
   return Array.from({ length: userCount }, (_, i) => ({
@@ -43,7 +52,7 @@ const initialUsers = generateInitialUsers();
 
 export default function Home() {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
-  const [history, setHistory] = useState<UserData[][]>([]);
+  const [history, setHistory] = useState<GameState[]>([]);
   const { toast } = useToast();
 
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -56,6 +65,17 @@ export default function Home() {
 
   const [lastWinnerId, setLastWinnerId] = useState<number | null>(null);
   const [laCounts, setLaCounts] = useState<LaCounts>({});
+  
+  const saveStateToHistory = () => {
+    const currentState: GameState = {
+      users: JSON.parse(JSON.stringify(users)),
+      laCounts: JSON.parse(JSON.stringify(laCounts)),
+      lastWinnerId,
+      dealerId,
+      consecutiveWins,
+    };
+    setHistory(prev => [...prev, currentState]);
+  };
 
   const handleSetDealer = (userId: number) => {
     setDealerId(userId);
@@ -100,7 +120,7 @@ export default function Home() {
 
 
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
-    setHistory(prev => [...prev, users]);
+    saveStateToHistory();
     
     updateLaCounts(mainUserId, [targetUserId]);
 
@@ -128,7 +148,7 @@ export default function Home() {
   };
   
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
-    setHistory(prev => [...prev, users]);
+    saveStateToHistory();
     const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
     updateLaCounts(mainUserId, opponentIds);
 
@@ -176,7 +196,7 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    setHistory(prev => [...prev, users]);
+    saveStateToHistory();
     setUsers(prevUsers => 
       prevUsers.map(user => ({
         ...user,
@@ -188,13 +208,16 @@ export default function Home() {
   };
 
   const handleRestore = () => {
-    // This is a simplified restore, a more robust solution would be needed for laCounts and dealer state
     if (history.length > 0) {
       const lastState = history[history.length - 1];
-      setUsers(lastState);
+      setUsers(lastState.users);
+      setLaCounts(lastState.laCounts);
+      setLastWinnerId(lastState.lastWinnerId);
+      setDealerId(lastState.dealerId);
+      setConsecutiveWins(lastState.consecutiveWins);
       setHistory(prev => prev.slice(0, prev.length - 1));
        toast({
-        description: "Last action restored. Note: 'La' counts are not restored.",
+        description: "Last action restored.",
       });
     } else {
       toast({
@@ -339,5 +362,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
