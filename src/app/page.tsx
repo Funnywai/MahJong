@@ -97,9 +97,9 @@ export default function Home() {
           return {
             ...user,
             name: updatedUser.name,
-            outputs: user.outputs.map((output, index) => ({
+            outputs: user.outputs.map((output) => ({
               ...output,
-              name: `${updatedUser.name} Output ${index + 1}`,
+              name: updatedUser.name,
             })),
           };
         }
@@ -166,7 +166,7 @@ export default function Home() {
                 </div>
               </TableCell>
             )}
-            <TableCell className="font-medium text-foreground/80">{output.name}</TableCell>
+            <TableCell className="font-medium text-foreground/80">{user.name}</TableCell>
             <TableCell>
               <Button
                 variant="outline"
