@@ -133,7 +133,7 @@ export default function Home() {
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
     const winner = users.find(u => u.id === mainUserId);
     const loser = users.find(u => u.id === targetUserId);
-    const actionDescription = `${winner?.name} 食胡 ${loser?.name} for ${value}`;
+    const actionDescription = `${winner?.name} 食胡 ${loser?.name} ${value}番`;
     
     let finalValue = value;
     const dealerBonus = 2 * consecutiveWins - 1;
@@ -171,7 +171,7 @@ export default function Home() {
   
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
     const winner = users.find(u => u.id === mainUserId);
-    const actionDescription = `${winner?.name} 自摸 for ${value}`;
+    const actionDescription = `${winner?.name} 自摸 ${value}番`;
     const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
     
     const isDealerWinning = mainUserId === dealerId;
