@@ -15,6 +15,7 @@ import { RefreshCw, Edit, Users, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserInputDialog } from '@/app/components/user-input-dialog';
 import { RenameDialog } from '@/app/components/rename-dialog';
+import { WinActionDialog } from '@/app/components/win-action-dialog';
 
 interface OutputData {
   id: number;
@@ -66,14 +67,21 @@ export default function Home() {
 
   const [isInputDialogOpen, setIsInputDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [isWinActionDialogOpen, setIsWinActionDialogOpen] = useState(false);
   const [currentOutput, setCurrentOutput] = useState<{
     mainUserId: number;
     output: OutputData;
   } | null>(null);
+  const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
 
   const handleOpenDialog = (mainUserId: number, output: OutputData) => {
     setCurrentOutput({ mainUserId, output });
     setIsInputDialogOpen(true);
+  };
+  
+  const handleOpenWinActionDialog = (user: UserData) => {
+    setCurrentUserForWinAction(user);
+    setIsWinActionDialogOpen(true);
   };
 
   const handleSaveInputs = (
@@ -100,6 +108,29 @@ export default function Home() {
       )
     );
     setIsInputDialogOpen(false);
+  };
+
+  const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
+    setUsers(prevUsers => {
+      return prevUsers.map(user => {
+        if (user.id === mainUserId) {
+          return {
+            ...user,
+            outputs: user.outputs.map(output => {
+              if (output.displayUserId === targetUserId) {
+                return {
+                  ...output,
+                  outputSum: (output.outputSum || 0) + value
+                };
+              }
+              return output;
+            })
+          };
+        }
+        return user;
+      });
+    });
+    setIsWinActionDialogOpen(false);
   };
 
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
@@ -137,9 +168,14 @@ export default function Home() {
             <TableRow key={`${user.id}-${output.id}`}>
               {outputIndex === 0 && (
                 <TableCell className="font-semibold text-foreground/90 align-top" rowSpan={user.outputs.length}>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary"/>
-                    {user.name}
+                  <div className="flex flex-col gap-2 items-start">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary"/>
+                      {user.name}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
+                       食胡
+                    </Button>
                   </div>
                 </TableCell>
               )}
@@ -196,9 +232,9 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">User</TableHead>
-                    <TableHead className="w-[200px]">食</TableHead>
-                    <TableHead className="w-[400px]">Inputs (6 per Output)</TableHead>
-                    <TableHead className="text-center w-[150px]">Output Sum</TableHead>
+                    <TableHead className="w-[200px]">出統</TableHead>
+                    <TableHead className="w-[400px]">食</TableHead>
+                    <TableHead className="text-center w-[150px]">番數</TableHead>
                   </TableRow>
                 </TableHeader>
                 {memoizedTableBody}
@@ -222,6 +258,15 @@ export default function Home() {
         users={users}
         onSave={handleSaveUserNames}
        />
+      {currentUserForWinAction && (
+        <WinActionDialog
+          isOpen={isWinActionDialogOpen}
+          onClose={() => setIsWinActionDialogOpen(false)}
+          mainUser={currentUserForWinAction}
+          users={users.filter(u => u.id !== currentUserForWinAction.id)}
+          onSave={handleSaveWinAction}
+        />
+       )}
 
     </main>
   );

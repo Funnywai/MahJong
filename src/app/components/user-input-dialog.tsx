@@ -53,16 +53,13 @@ export function UserInputDialog({ isOpen, onClose, mainUserId, output, onSave }:
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Enter Data for {output.name}</DialogTitle>
-          <DialogDescription>
-            Enter the 6 numerical values for this output row.
-          </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div className="grid grid-cols-3 items-center gap-2" key={index}>
                   <Label htmlFor={`input-${index}`} className="text-right col-span-1">
-                    Input {index + 1}
+                    拉 {index + 1}
                   </Label>
                   <Input
                     id={`input-${index}`}
