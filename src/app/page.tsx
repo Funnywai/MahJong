@@ -205,7 +205,7 @@ export default function Home() {
     setIsWinActionDialogOpen(false);
   };
   
-  const handleSaveZimoAction = (mainUserId: number, value: number) => {
+const handleSaveZimoAction = (mainUserId: number, value: number) => {
     const winner = users.find(u => u.id === mainUserId);
     const actionDescription = `${winner?.name} 自摸 ${value}番`;
     const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
@@ -218,15 +218,27 @@ export default function Home() {
     const scoreChanges: ScoreChange[] = [];
 
     opponentIds.forEach(opponentId => {
-        let scoreToAdd = value;
+        let currentScore = value;
         if (isDealerWinning) {
-            scoreToAdd += dealerBonus;
+            currentScore += dealerBonus;
         } else if (opponentId === dealerId) {
-            scoreToAdd += dealerBonus;
+            currentScore += dealerBonus;
         }
-        scoresToAdd[opponentId] = scoreToAdd;
-        winnerTotalChange += scoreToAdd;
-        scoreChanges.push({ userId: opponentId, change: -scoreToAdd });
+        
+        let finalValue = currentScore;
+        const previousWinner = users.find(u => u.id === lastWinnerId);
+        if (previousWinner && previousWinner.id === mainUserId) {
+            const previousScore = winner?.winValues[opponentId] || 0;
+            if (previousScore > 0) {
+                const bonus = Math.round(previousScore * 0.5);
+                finalValue = previousScore + bonus + currentScore;
+            }
+        }
+
+        const change = finalValue - (winner?.winValues[opponentId] || 0);
+        scoresToAdd[opponentId] = finalValue;
+        winnerTotalChange += change;
+        scoreChanges.push({ userId: opponentId, change: -change });
     });
     scoreChanges.push({ userId: mainUserId, change: winnerTotalChange });
 
@@ -247,8 +259,15 @@ export default function Home() {
             if (user.id === mainUserId) {
                 const newWinValues = isNewWinner ? {} : { ...user.winValues };
                 Object.entries(scoresToAdd).forEach(([opponentId, score]) => {
-                    newWinValues[parseInt(opponentId)] = (newWinValues[parseInt(opponentId)] || 0) + score;
+                    newWinValues[parseInt(opponentId)] = score;
                 });
+                return { ...user, winValues: newWinValues };
+            }
+            if (user.id !== mainUserId) {
+                const newWinValues = { ...user.winValues };
+                if (newWinValues[mainUserId]) {
+                    newWinValues[mainUserId] = 0;
+                }
                 return { ...user, winValues: newWinValues };
             }
             return user;
