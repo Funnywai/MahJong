@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw, Users, Pencil, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
@@ -142,13 +142,13 @@ export default function Home() {
       {users.map((user) => {
         return (
           <TableRow key={user.id}>
-            <TableCell className="font-semibold text-foreground/90 align-top">
+            <TableCell className="font-semibold text-foreground/90 align-top p-2">
               <div className="flex flex-col gap-2 items-start">
                 <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary"/>
+                  <Users className="h-4 w-4 text-primary"/>
                   {user.name}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-stretch gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
                      食胡
                   </Button>
@@ -156,13 +156,13 @@ export default function Home() {
                      自摸
                   </Button>
                 </div>
-                <div className="font-bold text-xl mt-2">
+                <div className="font-bold text-lg mt-1">
                     Total: {totalScores[user.id]?.toLocaleString() ?? 0}
                 </div>
               </div>
             </TableCell>
             {users.map(opponent => (
-                <TableCell key={opponent.id} className="font-semibold text-center text-accent text-lg transition-all duration-300">
+                <TableCell key={opponent.id} className="font-semibold text-center text-accent text-base transition-all duration-300 p-2">
                     {(user.winValues[opponent.id] || 0).toLocaleString()}
                 </TableCell>
             ))}
@@ -175,7 +175,7 @@ export default function Home() {
   const tableOpponentHeaders = useMemo(() => {
     return (
         users.map(user => (
-            <TableHead key={user.id} className="text-center w-[150px]">
+            <TableHead key={user.id} className="text-center w-[120px] p-2">
                 {user.name}
             </TableHead>
         ))
@@ -184,33 +184,33 @@ export default function Home() {
 
 
   return (
-    <main className="container mx-auto flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-12">
-      <div className="w-full max-w-5xl">
-        <header className="mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
+      <div className="w-full max-w-4xl">
+        <header className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsRenameDialogOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
               <Pencil className="mr-2 h-4 w-4" /> Rename
             </Button>
-            <Button variant="outline" onClick={handleRestore} disabled={history.length === 0}>
+            <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
               <History className="mr-2 h-4 w-4" /> Restore
             </Button>
-            <Button variant="outline" onClick={handleReset}>
+            <Button variant="outline" size="sm" onClick={handleReset}>
               <RefreshCw className="mr-2 h-4 w-4" /> Reset
             </Button>
           </div>
         </header>
 
-        <Card className="shadow-lg border-2 border-primary/10">
-          <CardContent>
+        <Card className="shadow-lg border-primary/10">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">User</TableHead>
-                    <TableHead colSpan={users.length} className="text-center w-[150px]">番數</TableHead>
+                    <TableHead className="w-[120px] p-2">User</TableHead>
+                    <TableHead colSpan={users.length} className="text-center w-[120px] p-2">番數</TableHead>
                   </TableRow>
                   <TableRow>
-                    <TableHead></TableHead>
+                    <TableHead className="p-2"></TableHead>
                     {tableOpponentHeaders}
                   </TableRow>
                 </TableHeader>
