@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { List, ListCollapse, Shuffle } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -28,6 +28,10 @@ interface SeatChangeDialogProps {
 
 export function SeatChangeDialog({ isOpen, onClose, users, onSave }: SeatChangeDialogProps) {
   const [orderedUsers, setOrderedUsers] = useState<UserData[]>([]);
+  const [draggingItem, setDraggingItem] = useState<number | null>(null);
+
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,15 +39,28 @@ export function SeatChangeDialog({ isOpen, onClose, users, onSave }: SeatChangeD
     }
   }, [isOpen, users]);
 
-  const handleRotate = () => {
-    setOrderedUsers(prev => {
-        const rotated = [...prev];
-        const last = rotated.pop();
-        if (last) {
-            rotated.unshift(last);
-        }
-        return rotated;
-    });
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    dragItem.current = index;
+    setDraggingItem(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.toString()); // For Firefox
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    dragOverItem.current = index;
+    const list = [...orderedUsers];
+    const dragItemContent = list[dragItem.current!];
+    if (dragItem.current === index) return;
+    list.splice(dragItem.current!, 1);
+    list.splice(dragOverItem.current!, 0, dragItemContent);
+    dragItem.current = index;
+    setOrderedUsers(list);
+  };
+  
+  const handleDragEnd = () => {
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setDraggingItem(null);
   };
 
   const handleSave = () => {
@@ -56,21 +73,27 @@ export function SeatChangeDialog({ isOpen, onClose, users, onSave }: SeatChangeD
         <DialogHeader>
           <DialogTitle>Change Seats (換位)</DialogTitle>
           <DialogDescription>
-            Change the order of users to update the dealer succession.
+            Drag and drop users to change the order of dealer succession.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-2">
             <div className="flex justify-between items-center">
                 <h3 className="font-semibold">Current Order</h3>
-                <Button variant="outline" size="sm" onClick={handleRotate}>
-                    <Shuffle className="mr-2 h-4 w-4" /> Rotate
-                </Button>
             </div>
           {orderedUsers.map((user, index) => (
             <div
               key={user.id}
-              className="flex items-center gap-4 p-2 border rounded-md bg-secondary/30"
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnter={(e) => handleDragEnter(e, index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => e.preventDefault()}
+              className={cn(
+                "flex items-center gap-4 p-2 border rounded-md bg-secondary/30 cursor-grab active:cursor-grabbing",
+                draggingItem === index && "opacity-50 border-primary"
+              )}
             >
+              <GripVertical className="h-5 w-5 text-muted-foreground" />
               <div className="font-bold text-primary">{index + 1}</div>
               <div className="flex-1">{user.name}</div>
             </div>
@@ -88,5 +111,3 @@ export function SeatChangeDialog({ isOpen, onClose, users, onSave }: SeatChangeD
     </Dialog>
   );
 }
-
-    
