@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History, Crown } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
@@ -157,8 +157,8 @@ export default function Home() {
             <TableCell className="font-semibold text-foreground/90 align-top p-2">
               <div className="flex flex-col gap-2 items-start">
                 <div className="flex items-center gap-2">
-                  <button onClick={() => handleSetDealer(user.id)} className="p-1 rounded-md hover:bg-primary/20">
-                    <Crown className={cn("h-4 w-4 text-primary", isDealer ? "fill-yellow-400 text-yellow-600" : "text-gray-400")} />
+                  <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-lg w-6 h-6 rounded-md hover:bg-primary/20", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
+                    莊
                   </button>
                   <Users className="h-4 w-4 text-primary"/>
                   {user.name}
