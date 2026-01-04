@@ -15,6 +15,7 @@ import { RefreshCw, Users, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
+import { ZimoActionDialog } from '@/app/components/zimo-action-dialog';
 
 interface UserData {
   id: number;
@@ -39,12 +40,18 @@ export default function Home() {
 
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isWinActionDialogOpen, setIsWinActionDialogOpen] = useState(false);
+  const [isZimoActionDialogOpen, setIsZimoActionDialogOpen] = useState(false);
   
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
 
   const handleOpenWinActionDialog = (user: UserData) => {
     setCurrentUserForWinAction(user);
     setIsWinActionDialogOpen(true);
+  };
+  
+  const handleOpenZimoActionDialog = (user: UserData) => {
+    setCurrentUserForWinAction(user);
+    setIsZimoActionDialogOpen(true);
   };
 
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
@@ -59,6 +66,23 @@ export default function Home() {
       });
     });
     setIsWinActionDialogOpen(false);
+  };
+
+  const handleSaveZimoAction = (mainUserId: number, value: number) => {
+    setUsers(prevUsers => {
+      const opponentIds = prevUsers.filter(u => u.id !== mainUserId).map(u => u.id);
+      return prevUsers.map(user => {
+        if (user.id === mainUserId) {
+          const newWinValues = { ...user.winValues };
+          opponentIds.forEach(opponentId => {
+            newWinValues[opponentId] = (newWinValues[opponentId] || 0) + value;
+          });
+          return { ...user, winValues: newWinValues };
+        }
+        return user;
+      });
+    });
+    setIsZimoActionDialogOpen(false);
   };
   
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
@@ -111,9 +135,14 @@ export default function Home() {
                   <Users className="h-5 w-5 text-primary"/>
                   {user.name}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
-                   食胡
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
+                     食胡
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenZimoActionDialog(user)}>
+                     自摸
+                  </Button>
+                </div>
                 <div className="font-bold text-xl mt-2">
                     Total: {totalScores[user.id]?.toLocaleString() ?? 0}
                 </div>
@@ -198,6 +227,14 @@ export default function Home() {
           mainUser={currentUserForWinAction}
           users={users.filter(u => u.id !== currentUserForWinAction.id)}
           onSave={handleSaveWinAction}
+        />
+       )}
+      {currentUserForWinAction && (
+        <ZimoActionDialog
+          isOpen={isZimoActionDialogOpen}
+          onClose={() => setIsZimoActionDialogOpen(false)}
+          mainUser={currentUserForWinAction}
+          onSave={handleSaveZimoAction}
         />
        )}
 
