@@ -11,9 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, Edit, Users, Pencil } from 'lucide-react';
+import { RefreshCw, Users, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { UserInputDialog } from '@/app/components/user-input-dialog';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
 
@@ -67,73 +66,39 @@ export default function Home() {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const { toast } = useToast();
 
-  const [isInputDialogOpen, setIsInputDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isWinActionDialogOpen, setIsWinActionDialogOpen] = useState(false);
-  const [currentOutput, setCurrentOutput] = useState<{
-    mainUserId: number;
-    output: OutputData;
-  } | null>(null);
+  
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
 
-  const handleOpenDialog = (mainUserId: number, output: OutputData) => {
-    setCurrentOutput({ mainUserId, output });
-    setIsInputDialogOpen(true);
-  };
   
   const handleOpenWinActionDialog = (user: UserData) => {
     setCurrentUserForWinAction(user);
     setIsWinActionDialogOpen(true);
   };
 
-  const handleSaveInputs = (
-    mainUserId: number,
-    outputId: number,
-    inputs: (number | string)[]
-  ) => {
-    setUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.id === mainUserId
-          ? {
-              ...user,
-              outputs: user.outputs.map((output) =>
-                output.id === outputId
-                  ? {
-                      ...output,
-                      inputs: inputs,
-                      outputSum: inputs.reduce((acc, val) => acc + (Number(val) || 0), 0),
-                    }
-                  : output
-              ),
-            }
-          : user
-      )
-    );
-    setIsInputDialogOpen(false);
-  };
 
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
     setUsers(prevUsers => {
-      return prevUsers.map(user => {
+      // Find the main user and update their specific output's winValue
+      const newUsers = prevUsers.map(user => {
         if (user.id === mainUserId) {
-          return {
-            ...user,
-            outputs: user.outputs.map(output => {
-              if (output.displayUserId === targetUserId) {
-                return {
-                  ...output,
-                  winValue: (output.winValue || 0) + value,
-                };
-              }
-              return output;
-            })
-          };
+          const newOutputs = user.outputs.map(output => {
+            if (output.displayUserId === targetUserId) {
+              return { ...output, winValue: (output.winValue || 0) + value };
+            }
+            return output;
+          });
+          return { ...user, outputs: newOutputs };
         }
         return user;
       });
+  
+      return newUsers;
     });
     setIsWinActionDialogOpen(false);
   };
+  
 
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     setUsers((prevUsers) => {
@@ -163,15 +128,18 @@ export default function Home() {
   const totalScores = useMemo(() => {
     const scores: { [key: number]: number } = {};
     users.forEach(u => scores[u.id] = 0);
-
+  
     users.forEach(user => {
-        user.outputs.forEach(output => {
-            const score = (output.outputSum || 0) + (output.winValue || 0);
-            scores[user.id] += score;
-            scores[output.displayUserId] -= score;
-        });
+      user.outputs.forEach(output => {
+        const displayUser = users.find(u => u.id === output.displayUserId);
+        if (displayUser) {
+          const score = (output.outputSum || 0) + (output.winValue || 0);
+          scores[user.id] += score;
+          scores[output.displayUserId] -= score;
+        }
+      });
     });
-
+  
     return scores;
   }, [users]);
 
@@ -199,19 +167,8 @@ export default function Home() {
                   </div>
                 </TableCell>
               )}
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenDialog(user.id, output)}
-                  className="w-full justify-start"
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                   {displayUser ? displayUser.name : ''}
-                </Button>
-              </TableCell>
               <TableCell className="font-semibold text-center text-primary text-lg transition-all duration-300">
-                {output.outputSum?.toLocaleString() ?? '0'}
+                {displayUser?.name}
               </TableCell>
               <TableCell className="font-semibold text-center text-accent text-lg transition-all duration-300">
                 {output.winValue?.toLocaleString() ?? '0'}
@@ -252,9 +209,8 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">User</TableHead>
-                    <TableHead className="w-[200px]">Data Entry</TableHead>
+                    <TableHead className="text-center w-[150px]">出銃</TableHead>
                     <TableHead className="text-center w-[150px]">番數</TableHead>
-                    <TableHead className="text-center w-[150px]">自摸/出銃</TableHead>
                   </TableRow>
                 </TableHeader>
                 {memoizedTableBody}
@@ -263,15 +219,7 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
-      {currentOutput && (
-        <UserInputDialog
-          isOpen={isInputDialogOpen}
-          onClose={() => setIsInputDialogOpen(false)}
-          mainUserId={currentOutput.mainUserId}
-          output={currentOutput.output}
-          onSave={handleSaveInputs}
-        />
-      )}
+
       <RenameDialog
         isOpen={isRenameDialogOpen}
         onClose={() => setIsRenameDialogOpen(false)}
