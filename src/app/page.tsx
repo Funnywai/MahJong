@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -12,11 +11,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
+import { RefreshCw, Sparkles, Loader2, Edit } from 'lucide-react';
 import { suggestCalculations } from '@/ai/flows/suggest-calculations';
 import type { SuggestCalculationsOutput } from '@/ai/flows/suggest-calculations';
 import { useToast } from '@/hooks/use-toast';
 import { SuggestionsSheet } from '@/app/components/suggestions-sheet';
+import { UserInputDialog } from '@/app/components/user-input-dialog';
 
 interface UserData {
   id: number;
@@ -41,20 +41,19 @@ export default function Home() {
   const [isSuggesting, startSuggestionTransition] = useTransition();
   const { toast } = useToast();
 
-  const handleInputChange = (
-    userId: number,
-    inputIndex: number,
-    value: string
-  ) => {
-    const newUsers = users.map((user) => {
-      if (user.id === userId) {
-        const newInputs = [...user.inputs];
-        newInputs[inputIndex] = value;
-        return { ...user, inputs: newInputs };
-      }
-      return user;
-    });
-    setUsers(newUsers);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+
+  const handleOpenDialog = (user: UserData) => {
+    setCurrentUser(user);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveInputs = (userId: number, newInputs: (number | string)[]) => {
+    setUsers(
+      users.map((user) => (user.id === userId ? { ...user, inputs: newInputs } : user))
+    );
+    setIsDialogOpen(false);
   };
 
   const handleReset = () => {
@@ -75,12 +74,16 @@ export default function Home() {
           user.inputs.map((val) => Number(val) || 0)
         );
 
-        // Ensure the input matches the expected schema of 4 users with 6 inputs each
-        if (inputForAI.length !== 4 || inputForAI.some(arr => arr.length !== 6)) {
-          throw new Error("Input data is not in the correct format for AI suggestions.");
+        if (inputForAI.length === 0 || inputForAI.some(arr => arr.length !== 6)) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Input',
+                description: 'Please ensure all users have 6 numbers entered.',
+            });
+            return;
         }
         
-        const result: SuggestCalculationsOutput = await suggestCalculations({ userInputs: inputForAI as [number[], number[], number[], number[]] });
+        const result: SuggestCalculationsOutput = await suggestCalculations({ userInputs: inputForAI });
         setSuggestions(result.suggestions);
       } catch (error) {
         console.error('AI suggestion error:', error);
@@ -112,6 +115,7 @@ export default function Home() {
     setUsers(
       newUsers.map((user) => ({ ...user, sharedAvg: parseFloat(sharedAvg.toFixed(2)) }))
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(users.map(u => u.inputs))]);
   
   const memoizedTableBody = useMemo(() => (
@@ -119,17 +123,12 @@ export default function Home() {
       {users.map((user) => (
         <TableRow key={user.id}>
           <TableCell className="font-medium text-foreground/80">{user.name}</TableCell>
-          {user.inputs.map((input, index) => (
-            <TableCell key={index}>
-              <Input
-                type="number"
-                value={input}
-                onChange={(e) => handleInputChange(user.id, index, e.target.value)}
-                className="w-24 text-center bg-background/60"
-                aria-label={`${user.name} input ${index + 1}`}
-              />
-            </TableCell>
-          ))}
+          <TableCell className="text-center">
+            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(user)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Enter Data
+            </Button>
+          </TableCell>
           <TableCell className="font-semibold text-center text-primary transition-all duration-300">
             {user.userSum?.toLocaleString() ?? '0'}
           </TableCell>
@@ -144,7 +143,7 @@ export default function Home() {
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-12">
-      <div className="w-full max-w-7xl">
+      <div className="w-full max-w-4xl">
         <header className="mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <h1 className="text-4xl font-bold text-primary tracking-tight">
             FormulaShare
@@ -178,10 +177,8 @@ export default function Home() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">User</TableHead>
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <TableHead key={i} className="text-center w-28">Input {i + 1}</TableHead>
-                    ))}
+                    <TableHead className="w-[120px]">User</TableHead>
+                    <TableHead className="text-center">Inputs</TableHead>
                     <TableHead className="text-center">User's Sum</TableHead>
                     <TableHead className="text-center">Shared Avg</TableHead>
                   </TableRow>
@@ -198,6 +195,14 @@ export default function Home() {
         suggestions={suggestions}
         isLoading={isSuggesting}
       />
+      {currentUser && (
+        <UserInputDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          user={currentUser}
+          onSave={handleSaveInputs}
+        />
+      )}
     </main>
   );
 }
