@@ -237,7 +237,6 @@ export default function Home() {
   };
 
   const handleSaveSeatChange = (newUsers: UserData[]) => {
-    saveStateToHistory('Change Seats', []);
     setUsers(newUsers);
     setIsSeatChangeDialogOpen(false);
   };
