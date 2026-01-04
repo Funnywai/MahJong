@@ -205,7 +205,7 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">User</TableHead>
-                    <TableHead className="w-[120px]">Output</TableHead>
+                    <TableHead className="w-[120px]">食</TableHead>
                     <TableHead className="w-[400px]">Inputs (6 per Output)</TableHead>
                     <TableHead className="text-center w-[150px]">Output Sum</TableHead>
                   </TableRow>
