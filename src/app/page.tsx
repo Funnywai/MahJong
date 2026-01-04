@@ -77,10 +77,17 @@ export default function Home() {
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
     setHistory(prev => [...prev, users]);
     setUsers(prevUsers => {
+      let finalValue = value;
+      if (mainUserId === dealerId) {
+        finalValue = value + (2 * consecutiveWins -1);
+      } else if (targetUserId === dealerId) {
+        finalValue = value + (2 * consecutiveWins -1);
+      }
+  
       return prevUsers.map(user => {
         if (user.id === mainUserId) {
           const newWinValues = { ...user.winValues };
-          newWinValues[targetUserId] = (newWinValues[targetUserId] || 0) + value;
+          newWinValues[targetUserId] = (newWinValues[targetUserId] || 0) + finalValue;
           return { ...user, winValues: newWinValues };
         }
         return user;
@@ -89,25 +96,36 @@ export default function Home() {
     handleWin(mainUserId);
     setIsWinActionDialogOpen(false);
   };
-
+  
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
     setHistory(prev => [...prev, users]);
     setUsers(prevUsers => {
-      const opponentIds = prevUsers.filter(u => u.id !== mainUserId).map(u => u.id);
-      return prevUsers.map(user => {
-        if (user.id === mainUserId) {
-          const newWinValues = { ...user.winValues };
-          opponentIds.forEach(opponentId => {
-            newWinValues[opponentId] = (newWinValues[opponentId] || 0) + value;
-          });
-          return { ...user, winValues: newWinValues };
-        }
-        return user;
-      });
+        const opponentIds = prevUsers.filter(u => u.id !== mainUserId).map(u => u.id);
+        const isDealerWinning = mainUserId === dealerId;
+
+        const dealerBonus = 2 * consecutiveWins - 1;
+
+        return prevUsers.map(user => {
+            if (user.id === mainUserId) {
+                const newWinValues = { ...user.winValues };
+                opponentIds.forEach(opponentId => {
+                    let scoreToAdd = value;
+                    if (isDealerWinning) {
+                        scoreToAdd += dealerBonus;
+                    } else if (opponentId === dealerId) {
+                        scoreToAdd += dealerBonus;
+                    }
+                    newWinValues[opponentId] = (newWinValues[opponentId] || 0) + scoreToAdd;
+                });
+                return { ...user, winValues: newWinValues };
+            }
+            return user;
+        });
     });
     handleWin(mainUserId);
     setIsZimoActionDialogOpen(false);
-  };
+};
+
   
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     setUsers((prevUsers) => {
@@ -173,7 +191,7 @@ export default function Home() {
               <div className="flex flex-col gap-2 items-start">
                 <div className="flex items-center gap-2">
                   <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-sm w-auto px-1 h-6 rounded-md hover:bg-primary/20", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
-                    {isDealer && consecutiveWins > 1 ? `連${consecutiveWins - 1}` : ''}莊
+                    {isDealer && consecutiveWins > 1 ? `連${consecutiveWins}` : ''}莊
                   </button>
                   <Users className="h-4 w-4 text-primary"/>
                   {user.name}
