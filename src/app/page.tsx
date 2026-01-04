@@ -11,11 +11,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
 import { ZimoActionDialog } from '@/app/components/zimo-action-dialog';
+import { HistoryDialog } from '@/app/components/history-dialog';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -36,6 +37,7 @@ interface GameState {
   lastWinnerId: number | null;
   dealerId: number;
   consecutiveWins: number;
+  action: string;
 }
 
 
@@ -58,6 +60,7 @@ export default function Home() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isWinActionDialogOpen, setIsWinActionDialogOpen] = useState(false);
   const [isZimoActionDialogOpen, setIsZimoActionDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
   const [dealerId, setDealerId] = useState<number>(1);
@@ -66,13 +69,14 @@ export default function Home() {
   const [lastWinnerId, setLastWinnerId] = useState<number | null>(null);
   const [laCounts, setLaCounts] = useState<LaCounts>({});
   
-  const saveStateToHistory = () => {
+  const saveStateToHistory = (action: string) => {
     const currentState: GameState = {
       users: JSON.parse(JSON.stringify(users)),
       laCounts: JSON.parse(JSON.stringify(laCounts)),
       lastWinnerId,
       dealerId,
       consecutiveWins,
+      action,
     };
     setHistory(prev => [...prev, currentState]);
   };
@@ -120,7 +124,10 @@ export default function Home() {
 
 
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
-    saveStateToHistory();
+    const winner = users.find(u => u.id === mainUserId);
+    const loser = users.find(u => u.id === targetUserId);
+    const actionDescription = `${winner?.name} 食胡 ${loser?.name} for ${value}`;
+    saveStateToHistory(actionDescription);
     
     updateLaCounts(mainUserId, [targetUserId]);
 
@@ -152,7 +159,9 @@ export default function Home() {
   };
   
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
-    saveStateToHistory();
+    const winner = users.find(u => u.id === mainUserId);
+    const actionDescription = `${winner?.name} 自摸 for ${value}`;
+    saveStateToHistory(actionDescription);
     const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
     updateLaCounts(mainUserId, opponentIds);
 
@@ -204,7 +213,7 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    saveStateToHistory();
+    saveStateToHistory('Reset Game');
     setUsers(prevUsers => 
       prevUsers.map(user => ({
         ...user,
@@ -213,6 +222,7 @@ export default function Home() {
     );
     setLaCounts({});
     setLastWinnerId(null);
+    setHistory([]);
   };
 
   const handleRestore = () => {
@@ -316,10 +326,13 @@ export default function Home() {
               <Pencil className="mr-2 h-4 w-4" /> Rename
             </Button>
             <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
-              <History className="mr-2 h-4 w-4" /> Restore
+              <HistoryIcon className="mr-2 h-4 w-4" /> Restore
             </Button>
             <Button variant="outline" size="sm" onClick={handleReset}>
               <RefreshCw className="mr-2 h-4 w-4" /> Reset
+            </Button>
+             <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
+              <List className="mr-2 h-4 w-4" /> History
             </Button>
           </div>
         </header>
@@ -368,6 +381,11 @@ export default function Home() {
           onSave={handleSaveZimoAction}
         />
        )}
+       <HistoryDialog
+        isOpen={isHistoryDialogOpen}
+        onClose={() => setIsHistoryDialogOpen(false)}
+        history={history}
+      />
 
     </main>
   );
