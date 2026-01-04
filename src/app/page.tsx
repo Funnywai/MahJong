@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
@@ -36,6 +36,7 @@ const initialUsers = generateInitialUsers();
 
 export default function Home() {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
+  const [history, setHistory] = useState<UserData[][]>([]);
   const { toast } = useToast();
 
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -55,6 +56,7 @@ export default function Home() {
   };
 
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
+    setHistory(prev => [...prev, users]);
     setUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === mainUserId) {
@@ -69,6 +71,7 @@ export default function Home() {
   };
 
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
+    setHistory(prev => [...prev, users]);
     setUsers(prevUsers => {
       const opponentIds = prevUsers.filter(u => u.id !== mainUserId).map(u => u.id);
       return prevUsers.map(user => {
@@ -103,7 +106,20 @@ export default function Home() {
   };
 
   const handleReset = () => {
+    setHistory(prev => [...prev, users]);
     setUsers(generateInitialUsers());
+  };
+
+  const handleRestore = () => {
+    if (history.length > 0) {
+      const lastState = history[history.length - 1];
+      setUsers(lastState);
+      setHistory(prev => prev.slice(0, prev.length - 1));
+    } else {
+      toast({
+        description: "No actions to restore.",
+      });
+    }
   };
   
   const totalScores = useMemo(() => {
@@ -177,6 +193,9 @@ export default function Home() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setIsRenameDialogOpen(true)}>
               <Pencil className="mr-2 h-4 w-4" /> Rename
+            </Button>
+            <Button variant="outline" onClick={handleRestore} disabled={history.length === 0}>
+              <History className="mr-2 h-4 w-4" /> Restore
             </Button>
             <Button variant="outline" onClick={handleReset}>
               <RefreshCw className="mr-2 h-4 w-4" /> Reset
