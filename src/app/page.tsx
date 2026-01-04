@@ -24,6 +24,7 @@ interface OutputData {
   name: string;
   inputs: (number | string)[];
   outputSum: number | null;
+  displayUserId: number;
 }
 
 interface UserData {
@@ -32,16 +33,34 @@ interface UserData {
   outputs: OutputData[];
 }
 
-const initialUsers: UserData[] = Array.from({ length: 4 }, (_, i) => ({
-  id: i + 1,
-  name: `User ${i + 1}`,
-  outputs: Array.from({ length: 3 }, (__, j) => ({
-    id: j + 1,
-    name: `User ${i + 1} Output ${j + 1}`,
-    inputs: Array(6).fill(''),
-    outputSum: 0,
-  })),
-}));
+const generateInitialUsers = (): UserData[] => {
+  const userCount = 4;
+  const outputCount = 3;
+  const users = Array.from({ length: userCount }, (_, i) => ({
+    id: i + 1,
+    name: `User ${i + 1}`,
+    outputs: [] as OutputData[],
+  }));
+
+  users.forEach((user, userIndex) => {
+    const otherUsers = users.filter(u => u.id !== user.id);
+    user.outputs = Array.from({ length: outputCount }, (_, j) => {
+      const displayUser = otherUsers[j % otherUsers.length];
+      return {
+        id: j + 1,
+        name: user.name,
+        inputs: Array(6).fill(''),
+        outputSum: 0,
+        displayUserId: displayUser.id,
+      };
+    });
+  });
+
+  return users;
+};
+
+
+const initialUsers = generateInitialUsers();
 
 
 export default function Home() {
@@ -91,7 +110,7 @@ export default function Home() {
 
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     setUsers((prevUsers) => {
-      return prevUsers.map((user) => {
+      const newUsers = prevUsers.map((user) => {
         const updatedUser = updatedUsers.find((u) => u.id === user.id);
         if (updatedUser) {
           return {
@@ -99,18 +118,19 @@ export default function Home() {
             name: updatedUser.name,
             outputs: user.outputs.map((output) => ({
               ...output,
-              name: updatedUser.name,
+              name: updatedUser.name, // Only update the row's owner name
             })),
           };
         }
         return user;
       });
+      return newUsers;
     });
     setIsRenameDialogOpen(false);
   };
 
   const handleReset = () => {
-    setUsers(initialUsers);
+    setUsers(generateInitialUsers());
     setSuggestions([]);
   };
 
@@ -156,35 +176,39 @@ export default function Home() {
   const memoizedTableBody = useMemo(() => (
     <TableBody>
       {users.map((user) =>
-        user.outputs.map((output, outputIndex) => (
-          <TableRow key={`${user.id}-${output.id}`}>
-            {outputIndex === 0 && (
-              <TableCell className="font-semibold text-foreground/90 align-top" rowSpan={user.outputs.length}>
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary"/>
-                  {user.name}
-                </div>
+        user.outputs.map((output, outputIndex) => {
+          const displayUser = users.find(u => u.id === output.displayUserId);
+
+          return (
+            <TableRow key={`${user.id}-${output.id}`}>
+              {outputIndex === 0 && (
+                <TableCell className="font-semibold text-foreground/90 align-top" rowSpan={user.outputs.length}>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary"/>
+                    {user.name}
+                  </div>
+                </TableCell>
+              )}
+              <TableCell className="font-medium text-foreground/80">
+                {displayUser ? displayUser.name : ''}
               </TableCell>
-            )}
-            <TableCell className="font-medium text-foreground/80">
-              {users.filter(otherUser => otherUser.id !== user.id).map(otherUser => otherUser.name).join(', ')}
-            </TableCell>
-            <TableCell>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleOpenDialog(user.id, output)}
-                className="w-full justify-start"
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Enter Data
-              </Button>
-            </TableCell>
-            <TableCell className="font-semibold text-center text-primary text-lg transition-all duration-300">
-              {output.outputSum?.toLocaleString() ?? '0'}
-            </TableCell>
-          </TableRow>
-        ))
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenDialog(user.id, output)}
+                  className="w-full justify-start"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Enter Data
+                </Button>
+              </TableCell>
+              <TableCell className="font-semibold text-center text-primary text-lg transition-all duration-300">
+                {output.outputSum?.toLocaleString() ?? '0'}
+              </TableCell>
+            </TableRow>
+          );
+        })
       )}
     </TableBody>
   // eslint-disable-next-line react-hooks/exhaustive-deps
