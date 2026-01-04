@@ -52,7 +52,6 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
             <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-left w-[200px]">Action</TableHead>
                     {users.map(user => (
                       <TableHead key={user.id} className="text-center">{user.name}</TableHead>
                     ))}
@@ -61,7 +60,6 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
                 <TableBody>
                   {history.slice().reverse().map((state, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-semibold">{state.action}</TableCell>
                       {users.map(user => {
                         const change = state.scoreChanges.find(sc => sc.userId === user.id)?.change ?? 0;
                         const isPositive = change > 0;
