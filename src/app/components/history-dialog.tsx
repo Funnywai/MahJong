@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -18,7 +19,8 @@ import {
 } from '@/components/ui/table';
 import type { ScoreChange } from '@/app/page';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -38,6 +40,32 @@ interface HistoryDialogProps {
 }
 
 export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialogProps) {
+  const handleExportCSV = () => {
+    if (!history.length || !users.length) return;
+
+    const headers = ['Action', ...users.map(u => u.name)];
+    let csvContent = headers.join(',') + '\n';
+
+    history.slice().reverse().forEach(state => {
+      const action = state.action.replace(/,/g, ''); // Basic sanitization for CSV
+      const scoreChanges = users.map(user => {
+        return state.scoreChanges.find(sc => sc.userId === user.id)?.change ?? 0;
+      });
+      const row = [`"${action}"`, ...scoreChanges].join(',');
+      csvContent += row + '\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'game-history.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
@@ -83,6 +111,15 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
             </Table>
           </div>
         </ScrollArea>
+        <DialogFooter>
+            <Button variant="outline" onClick={handleExportCSV} disabled={history.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                Save as CSV
+            </Button>
+            <Button type="button" onClick={onClose}>
+                Close
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
