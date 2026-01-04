@@ -24,6 +24,12 @@ interface UserData {
   winValues: { [opponentId: number]: number };
 }
 
+interface LaCounts {
+  [winnerId: number]: {
+    [loserId: number]: number;
+  };
+}
+
 const generateInitialUsers = (): UserData[] => {
   const userCount = 4;
   return Array.from({ length: userCount }, (_, i) => ({
@@ -47,6 +53,9 @@ export default function Home() {
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
   const [dealerId, setDealerId] = useState<number>(1);
   const [consecutiveWins, setConsecutiveWins] = useState<number>(1);
+
+  const [lastWinnerId, setLastWinnerId] = useState<number | null>(null);
+  const [laCounts, setLaCounts] = useState<LaCounts>({});
 
   const handleSetDealer = (userId: number) => {
     setDealerId(userId);
@@ -74,15 +83,40 @@ export default function Home() {
     }
   };
 
+  const updateLaCounts = (winnerId: number, loserIds: number[]) => {
+    const newLaCounts: LaCounts = winnerId === lastWinnerId ? { ...laCounts } : {};
+    
+    if (!newLaCounts[winnerId]) {
+      newLaCounts[winnerId] = {};
+    }
+
+    loserIds.forEach(loserId => {
+      newLaCounts[winnerId][loserId] = (newLaCounts[winnerId]?.[loserId] || 0) + 1;
+    });
+
+    setLaCounts(newLaCounts);
+    setLastWinnerId(winnerId);
+  };
+
+
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
     setHistory(prev => [...prev, users]);
+    
+    updateLaCounts(mainUserId, [targetUserId]);
+
+    const laMultiplier = (laCounts[mainUserId]?.[targetUserId] || 0) + 1;
+
     setUsers(prevUsers => {
       let finalValue = value;
+      const dealerBonus = 2 * consecutiveWins - 1;
+
       if (mainUserId === dealerId) {
-        finalValue = value + (2 * consecutiveWins -1);
+        finalValue += dealerBonus;
       } else if (targetUserId === dealerId) {
-        finalValue = value + (2 * consecutiveWins -1);
+        finalValue += dealerBonus;
       }
+      
+      finalValue *= laMultiplier;
   
       return prevUsers.map(user => {
         if (user.id === mainUserId) {
@@ -99,22 +133,25 @@ export default function Home() {
   
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
     setHistory(prev => [...prev, users]);
-    setUsers(prevUsers => {
-        const opponentIds = prevUsers.filter(u => u.id !== mainUserId).map(u => u.id);
-        const isDealerWinning = mainUserId === dealerId;
+    const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
+    updateLaCounts(mainUserId, opponentIds);
 
+    setUsers(prevUsers => {
+        const isDealerWinning = mainUserId === dealerId;
         const dealerBonus = 2 * consecutiveWins - 1;
 
         return prevUsers.map(user => {
             if (user.id === mainUserId) {
                 const newWinValues = { ...user.winValues };
                 opponentIds.forEach(opponentId => {
+                    const laMultiplier = (laCounts[mainUserId]?.[opponentId] || 0) + 1;
                     let scoreToAdd = value;
                     if (isDealerWinning) {
                         scoreToAdd += dealerBonus;
                     } else if (opponentId === dealerId) {
                         scoreToAdd += dealerBonus;
                     }
+                    scoreToAdd *= laMultiplier;
                     newWinValues[opponentId] = (newWinValues[opponentId] || 0) + scoreToAdd;
                 });
                 return { ...user, winValues: newWinValues };
@@ -152,13 +189,19 @@ export default function Home() {
         winValues: {}
       }))
     );
+    setLaCounts({});
+    setLastWinnerId(null);
   };
 
   const handleRestore = () => {
+    // This is a simplified restore, a more robust solution would be needed for laCounts and dealer state
     if (history.length > 0) {
       const lastState = history[history.length - 1];
       setUsers(lastState);
       setHistory(prev => prev.slice(0, prev.length - 1));
+       toast({
+        description: "Last action restored. Note: 'La' counts are not restored.",
+      });
     } else {
       toast({
         description: "No actions to restore.",
@@ -222,13 +265,19 @@ export default function Home() {
 
   const tableOpponentHeaders = useMemo(() => {
     return (
-        users.map(user => (
-            <TableHead key={user.id} className="text-center w-[120px] p-2">
-                {user.name}
-            </TableHead>
-        ))
+        users.map(user => {
+            const laCount = lastWinnerId != null && laCounts[lastWinnerId]?.[user.id];
+            return (
+              <TableHead key={user.id} className="text-center w-[120px] p-2">
+                  {user.name}
+                  {laCount > 0 && (
+                      <span className="text-red-500 ml-1 font-bold">拉{laCount}</span>
+                  )}
+              </TableHead>
+            )
+        })
     );
-  }, [users]);
+  }, [users, laCounts, lastWinnerId]);
 
 
   return (
@@ -296,3 +345,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
