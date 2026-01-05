@@ -47,7 +47,6 @@ interface GameState {
   scoreChanges: ScoreChange[];
 }
 
-
 const generateInitialUsers = (): UserData[] => {
   const userCount = 4;
   return Array.from({ length: userCount }, (_, i) => ({
@@ -60,8 +59,26 @@ const generateInitialUsers = (): UserData[] => {
 const initialUsers = generateInitialUsers();
 
 export default function Home() {
-  const [users, setUsers] = useState<UserData[]>(initialUsers);
-  const [history, setHistory] = useState<GameState[]>([]);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const [users, setUsers] = useState<UserData[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedUsers = localStorage.getItem('mahjong-users');
+      return savedUsers ? JSON.parse(savedUsers) : initialUsers;
+    }
+    return initialUsers;
+  });
+  const [history, setHistory] = useState<GameState[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedHistory = localStorage.getItem('mahjong-history');
+      return savedHistory ? JSON.parse(savedHistory) : [];
+    }
+    return [];
+  });
   const { toast } = useToast();
 
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -71,11 +88,46 @@ export default function Home() {
   const [isSeatChangeDialogOpen, setIsSeatChangeDialogOpen] = useState(false);
   
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
-  const [dealerId, setDealerId] = useState<number>(1);
-  const [consecutiveWins, setConsecutiveWins] = useState<number>(1);
+  const [dealerId, setDealerId] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const savedDealerId = localStorage.getItem('mahjong-dealerId');
+      return savedDealerId ? JSON.parse(savedDealerId) : 1;
+    }
+    return 1;
+  });
+  const [consecutiveWins, setConsecutiveWins] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const savedConsecutiveWins = localStorage.getItem('mahjong-consecutiveWins');
+      return savedConsecutiveWins ? JSON.parse(savedConsecutiveWins) : 1;
+    }
+    return 1;
+  });
 
-  const [lastWinnerId, setLastWinnerId] = useState<number | null>(null);
-  const [laCounts, setLaCounts] = useState<LaCounts>({});
+  const [lastWinnerId, setLastWinnerId] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const savedLastWinnerId = localStorage.getItem('mahjong-lastWinnerId');
+      return savedLastWinnerId ? JSON.parse(savedLastWinnerId) : null;
+    }
+    return null;
+  });
+  const [laCounts, setLaCounts] = useState<LaCounts>(() => {
+    if (typeof window !== 'undefined') {
+      const savedLaCounts = localStorage.getItem('mahjong-laCounts');
+      return savedLaCounts ? JSON.parse(savedLaCounts) : {};
+    }
+    return {};
+  });
+
+  useEffect(() => {
+    if(isClient) {
+      localStorage.setItem('mahjong-users', JSON.stringify(users));
+      localStorage.setItem('mahjong-history', JSON.stringify(history));
+      localStorage.setItem('mahjong-dealerId', JSON.stringify(dealerId));
+      localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(consecutiveWins));
+      localStorage.setItem('mahjong-lastWinnerId', JSON.stringify(lastWinnerId));
+      localStorage.setItem('mahjong-laCounts', JSON.stringify(laCounts));
+    }
+  }, [users, history, dealerId, consecutiveWins, lastWinnerId, laCounts, isClient]);
   
   const saveStateToHistory = (action: string, scoreChanges: ScoreChange[]) => {
     const currentState: GameState = {
@@ -313,6 +365,8 @@ const handleSaveZimoAction = (mainUserId: number, value: number) => {
     setLaCounts({});
     setLastWinnerId(null);
     setHistory([]);
+    setDealerId(users[0]?.id || 1);
+    setConsecutiveWins(1);
   };
 
   const handleRestore = () => {
@@ -388,7 +442,7 @@ const handleSaveZimoAction = (mainUserId: number, value: number) => {
         );
       })}
     </TableBody>
-  ), [users, totalScores, dealerId, consecutiveWins]);
+  ), [users, totalScores, dealerId, consecutiveWins, lastWinnerId, laCounts]);
 
   const tableOpponentHeaders = useMemo(() => {
     return (
@@ -406,6 +460,9 @@ const handleSaveZimoAction = (mainUserId: number, value: number) => {
     );
   }, [users, laCounts, lastWinnerId]);
 
+  if (!isClient) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
@@ -490,5 +547,3 @@ const handleSaveZimoAction = (mainUserId: number, value: number) => {
     </main>
   );
 }
-
-    
