@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -36,15 +35,6 @@ interface ResetScoresDialogProps {
 }
 
 export function ResetScoresDialog({ isOpen, onClose, scoresToReset, users }: ResetScoresDialogProps) {
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 3000); // Auto-close after 3 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, onClose]);
-    
   if (!scoresToReset) return null;
 
   return (
