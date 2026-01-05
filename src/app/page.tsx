@@ -317,6 +317,7 @@ export default function Home() {
         const scoresToAdd: { [opponentId: number]: number } = {};
         let winnerTotalChange = 0;
         const scoreChanges: ScoreChange[] = [];
+        const previousWinner = users.find(u => u.id === lastWinnerId);
 
         opponentIds.forEach(opponentId => {
             let currentScore = value;
@@ -327,12 +328,19 @@ export default function Home() {
             }
             
             let finalValue = currentScore;
-            const previousWinner = users.find(u => u.id === lastWinnerId);
+            
             if (previousWinner && previousWinner.id === mainUserId) {
+                // Consecutive win bonus
                 const previousScore = winner?.winValues[opponentId] || 0;
                 if (previousScore > 0) {
                     const bonus = Math.round(previousScore * 0.5);
                     finalValue = previousScore + bonus + currentScore;
+                }
+            } else if (isNewWinner && previousWinner && opponentId === previousWinner.id) {
+                // Kick back bonus against previous winner
+                const previousScoreOnWinner = previousWinner.winValues[mainUserId] || 0;
+                if (previousScoreOnWinner > 0) {
+                    finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
                 }
             }
 
