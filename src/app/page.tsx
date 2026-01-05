@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, MoreHorizontal, DollarSign } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, MoreHorizontal, DollarSign, Zap } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,6 +146,14 @@ export default function Home() {
   });
   const [scoresToReset, setScoresToReset] = useState<ScoresToReset | null>(null);
 
+  const [popOnNewWinner, setPopOnNewWinner] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const savedPopOnNewWinner = localStorage.getItem('mahjong-popOnNewWinner');
+      return savedPopOnNewWinner ? JSON.parse(savedPopOnNewWinner) : true;
+    }
+    return true;
+  });
+
 
   useEffect(() => {
     if(isClient) {
@@ -156,8 +164,9 @@ export default function Home() {
       localStorage.setItem('mahjong-lastWinnerId', JSON.stringify(lastWinnerId));
       localStorage.setItem('mahjong-laCounts', JSON.stringify(laCounts));
       localStorage.setItem('mahjong-undone-history', JSON.stringify(undoneHistory));
+      localStorage.setItem('mahjong-popOnNewWinner', JSON.stringify(popOnNewWinner));
     }
-  }, [users, history, dealerId, consecutiveWins, lastWinnerId, laCounts, undoneHistory, isClient]);
+  }, [users, history, dealerId, consecutiveWins, lastWinnerId, laCounts, undoneHistory, isClient, popOnNewWinner]);
 
   const saveStateToHistory = (action: string, scoreChanges: ScoreChange[]) => {
     const currentState: GameState = {
@@ -225,7 +234,7 @@ export default function Home() {
   ) => {
     const isNewWinner = mainUserId !== lastWinnerId && lastWinnerId !== null;
     const currentWinner = users.find(u => u.id === mainUserId);
-    if (isNewWinner) {
+    if (isNewWinner && popOnNewWinner) {
         const previousWinner = users.find(u => u.id === lastWinnerId);
         if (previousWinner) {
             const hasScores = Object.values(previousWinner.winValues).some(score => score > 0);
@@ -613,6 +622,9 @@ export default function Home() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
                     <DollarSign className="mr-2 h-4 w-4" /> 找數
+                </Button>
+                <Button variant={popOnNewWinner ? "secondary" : "outline"} size="sm" onClick={() => setPopOnNewWinner(p => !p)}>
+                    <Zap className="mr-2 h-4 w-4" /> POP
                 </Button>
 
                 <DropdownMenu>
