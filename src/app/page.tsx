@@ -519,6 +519,48 @@ export default function Home() {
     }
   };
 
+  const handleSurrender = (loserId: number) => {
+    if (!lastWinnerId) return;
+
+    const winner = users.find(u => u.id === lastWinnerId);
+    const loser = users.find(u => u.id === loserId);
+
+    if (!winner || !loser) return;
+
+    const scoreToReset = winner.winValues[loserId] || 0;
+    if (scoreToReset === 0) return;
+
+    const actionDescription = `${loser.name} 投降 to ${winner.name}`;
+    const scoreChanges: ScoreChange[] = [
+      { userId: winner.id, change: -scoreToReset },
+      { userId: loser.id, change: scoreToReset },
+    ];
+
+    saveStateToHistory(actionDescription, scoreChanges);
+
+    setLaCounts(prev => {
+      const newLaCounts = { ...prev };
+      if (newLaCounts[lastWinnerId]) {
+        newLaCounts[lastWinnerId][loserId] = 0;
+      }
+      return newLaCounts;
+    });
+
+    setUsers(prev => prev.map(user => {
+      if (user.id === lastWinnerId) {
+        const newWinValues = { ...user.winValues };
+        newWinValues[loserId] = 0;
+        return { ...user, winValues: newWinValues };
+      }
+      return user;
+    }));
+
+    toast({
+        title: "Surrendered!",
+        description: `${loser.name} has surrendered to ${winner.name}. Score has been reset.`,
+    });
+  };
+
   const totalScores = useMemo(() => {
     const scores: { [key: number]: number } = {};
     users.forEach(u => scores[u.id] = 0);
@@ -548,7 +590,7 @@ export default function Home() {
                       {isDealer && consecutiveWins > 1 ? `連${consecutiveWins}` : ''}莊
                     </button>
                     {isDealer && (
-                      <button onClick={handleManualConsecutiveWin} className="flex items-center justify-center font-bold text-sm w-auto px-2 h-6 rounded-md bg-blue-200 text-blue-800 hover:bg-blue-300">
+                      <button onClick={handleManualConsecutiveWin} className="flex items-center justify-center font-bold text-sm w-auto px-2 h-6 rounded-md bg-blue-200 text-blue-800 hover:bg-blue-300 whitespace-nowrap">
                         連莊
                       </button>
                     )}
@@ -586,12 +628,20 @@ export default function Home() {
     return (
         users.map(user => {
             const laCount = lastWinnerId != null && laCounts[lastWinnerId]?.[user.id];
+            const canSurrender = laCount >= 3;
             return (
               <TableHead key={user.id} className="text-center w-[120px] p-2">
-                  <div>{user.name}</div>
-                  {laCount > 0 && (
-                      <div className="text-red-500 font-bold">拉{laCount}</div>
-                  )}
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <div>{user.name}</div>
+                    {laCount > 0 && (
+                        <div className="text-red-500 font-bold">拉{laCount}</div>
+                    )}
+                    {canSurrender && (
+                      <Button variant="destructive" size="sm" className="h-6 px-2" onClick={() => handleSurrender(user.id)}>
+                        投降
+                      </Button>
+                    )}
+                  </div>
               </TableHead>
             )
         })
