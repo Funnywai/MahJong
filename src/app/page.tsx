@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, MoreHorizontal } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, MoreHorizontal, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +25,7 @@ import { ZimoActionDialog } from '@/app/components/zimo-action-dialog';
 import { HistoryDialog } from '@/app/components/history-dialog';
 import { SeatChangeDialog } from '@/app/components/seat-change-dialog';
 import { ResetScoresDialog } from '@/app/components/reset-scores-dialog';
+import { PayoutDialog } from '@/app/components/payout-dialog';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -109,8 +110,9 @@ export default function Home() {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isSeatChangeDialogOpen, setIsSeatChangeDialogOpen] = useState(false);
   const [isResetScoresDialogOpen, setIsResetScoresDialogOpen] = useState(false);
+  const [isPayoutDialogOpen, setIsPayoutDialogOpen] = useState(false);
 
-  
+
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
 
   const [dealerId, setDealerId] = useState<number>(() => {
@@ -156,7 +158,7 @@ export default function Home() {
       localStorage.setItem('mahjong-undone-history', JSON.stringify(undoneHistory));
     }
   }, [users, history, dealerId, consecutiveWins, lastWinnerId, laCounts, undoneHistory, isClient]);
-  
+
   const saveStateToHistory = (action: string, scoreChanges: ScoreChange[]) => {
     const currentState: GameState = {
       users: JSON.parse(JSON.stringify(users)),
@@ -175,7 +177,7 @@ export default function Home() {
     setDealerId(userId);
     setConsecutiveWins(1);
   };
-  
+
   const handleManualConsecutiveWin = () => {
     setConsecutiveWins(prev => prev + 1);
   };
@@ -184,7 +186,7 @@ export default function Home() {
     setCurrentUserForWinAction(user);
     setIsWinActionDialogOpen(true);
   };
-  
+
   const handleOpenZimoActionDialog = (user: UserData) => {
     setCurrentUserForWinAction(user);
     setIsZimoActionDialogOpen(true);
@@ -203,7 +205,7 @@ export default function Home() {
 
   const updateLaCounts = (winnerId: number, loserIds: number[]) => {
     const newLaCounts: LaCounts = winnerId === lastWinnerId ? { ...laCounts } : {};
-    
+
     if (!newLaCounts[winnerId]) {
       newLaCounts[winnerId] = {};
     }
@@ -246,7 +248,7 @@ export default function Home() {
         const winner = users.find(u => u.id === mainUserId);
         const loser = users.find(u => u.id === targetUserId);
         const actionDescription = `${winner?.name} 食胡 ${loser?.name} ${value}番`;
-        
+
         let currentScore = value;
         const dealerBonus = 2 * consecutiveWins - 1;
 
@@ -258,7 +260,7 @@ export default function Home() {
 
         let finalValue = currentScore;
         const previousWinner = users.find(u => u.id === lastWinnerId);
-        
+
         // Consecutive win bonus
         if (previousWinner && previousWinner.id === mainUserId) {
             const previousScore = winner?.winValues[targetUserId] || 0;
@@ -275,13 +277,13 @@ export default function Home() {
                 finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
             }
         }
-        
+
         const scoreChanges: ScoreChange[] = [
         { userId: mainUserId, change: finalValue - (users.find(u=>u.id===mainUserId)?.winValues[targetUserId] || 0) },
         { userId: targetUserId, change: -(finalValue - (users.find(u=>u.id===mainUserId)?.winValues[targetUserId] || 0)) },
         ];
         saveStateToHistory(actionDescription, scoreChanges);
-        
+
         updateLaCounts(mainUserId, [targetUserId]);
 
         setUsers(prevUsers => {
@@ -304,7 +306,7 @@ export default function Home() {
                       }
                   });
               }
-              
+
               return { ...user, winValues: newWinValues };
             }
             if (user.id !== mainUserId) {
@@ -323,10 +325,10 @@ export default function Home() {
         const winner = users.find(u => u.id === mainUserId);
         const actionDescription = `${winner?.name} 自摸 ${value}番`;
         const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
-        
+
         const isDealerWinning = mainUserId === dealerId;
         const dealerBonus = 2 * consecutiveWins - 1;
-        
+
         const scoresToAdd: { [opponentId: number]: number } = {};
         let winnerTotalChange = 0;
         const scoreChanges: ScoreChange[] = [];
@@ -339,9 +341,9 @@ export default function Home() {
             } else if (opponentId === dealerId) {
                 currentScore += dealerBonus;
             }
-            
+
             let finalValue = currentScore;
-            
+
             if (previousWinner && previousWinner.id === mainUserId) {
                 // Consecutive win bonus
                 const previousScore = winner?.winValues[opponentId] || 0;
@@ -405,11 +407,11 @@ export default function Home() {
   const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
     executeWinAction(mainUserId, value, targetUserId);
   };
-  
+
   const handleSaveZimoAction = (mainUserId: number, value: number) => {
     executeWinAction(mainUserId, value);
   };
-  
+
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     setUsers((prevUsers) => {
       const newUsers = prevUsers.map((user) => {
@@ -434,7 +436,7 @@ export default function Home() {
 
   const handleReset = () => {
     saveStateToHistory('Reset Game', []);
-    setUsers(prevUsers => 
+    setUsers(prevUsers =>
       prevUsers.map(user => ({
         ...user,
         winValues: {}
@@ -451,15 +453,6 @@ export default function Home() {
   const handleRestore = () => {
     if (history.length > 0) {
       const lastState = history[history.length - 1];
-      const currentState: GameState = {
-        users: JSON.parse(JSON.stringify(users)),
-        laCounts: JSON.parse(JSON.stringify(laCounts)),
-        lastWinnerId,
-        dealerId,
-        consecutiveWins,
-        action: 'Redo State', // This action label is for the state being moved TO undone
-        scoreChanges: [], // This is not a real game action, so no score changes.
-      };
       setUndoneHistory(prev => [lastState, ...prev]);
 
       const previousState = history[history.length - 2];
@@ -478,7 +471,7 @@ export default function Home() {
         setDealerId(initialUsersState[0].id);
         setConsecutiveWins(1);
       }
-      
+
       setHistory(prev => prev.slice(0, prev.length - 1));
        toast({
         description: "Last action restored.",
@@ -494,13 +487,13 @@ export default function Home() {
     if (undoneHistory.length > 0) {
       const nextState = undoneHistory[0];
       setHistory(prev => [...prev, nextState]);
-      
+
       setUsers(nextState.users);
       setLaCounts(nextState.laCounts);
       setLastWinnerId(nextState.lastWinnerId);
       setDealerId(nextState.dealerId);
       setConsecutiveWins(nextState.consecutiveWins);
-      
+
       setUndoneHistory(prev => prev.slice(1));
       toast({
         description: "Redo successful.",
@@ -511,11 +504,11 @@ export default function Home() {
       });
     }
   };
-  
+
   const totalScores = useMemo(() => {
     const scores: { [key: number]: number } = {};
     users.forEach(u => scores[u.id] = 0);
-  
+
     history.forEach(state => {
       state.scoreChanges.forEach(change => {
         if (scores[change.userId] !== undefined) {
@@ -523,7 +516,7 @@ export default function Home() {
         }
       });
     });
-  
+
     return scores;
   }, [history, users]);
 
@@ -606,10 +599,10 @@ export default function Home() {
                 <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
                     <Shuffle className="mr-2 h-4 w-4" /> 換位
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0} className="hidden sm:inline-flex">
+                <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
                     <HistoryIcon className="mr-2 h-4 w-4" /> 還原
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleRedo} disabled={undoneHistory.length === 0} className="hidden sm:inline-flex">
+                <Button variant="outline" size="sm" onClick={handleRedo} disabled={undoneHistory.length === 0}>
                     <Redo2 className="mr-2 h-4 w-4" /> 重做
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleReset} className="hidden md:inline-flex">
@@ -617,6 +610,9 @@ export default function Home() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0} className="hidden md:inline-flex">
                     <List className="mr-2 h-4 w-4" /> 歷史記錄
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
+                    <DollarSign className="mr-2 h-4 w-4" /> 找數
                 </Button>
 
                 <DropdownMenu>
@@ -626,12 +622,6 @@ export default function Home() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuItem onClick={handleRestore} disabled={history.length === 0} className="sm:hidden">
-                            <HistoryIcon className="mr-2 h-4 w-4" /> 還原
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleRedo} disabled={undoneHistory.length === 0} className="sm:hidden">
-                            <Redo2 className="mr-2 h-4 w-4" /> 重做
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleReset} className="md:hidden">
                            <RefreshCw className="mr-2 h-4 w-4" /> 重置
                         </DropdownMenuItem>
@@ -707,7 +697,12 @@ export default function Home() {
             users={users}
         />
       )}
-
+       <PayoutDialog
+          isOpen={isPayoutDialogOpen}
+          onClose={() => setIsPayoutDialogOpen(false)}
+          users={users}
+          totalScores={totalScores}
+       />
     </main>
   );
 }
