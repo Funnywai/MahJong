@@ -515,10 +515,6 @@ const handleCancelReset = () => {
     );
   }, [users, laCounts, lastWinnerId]);
 
-  if (!isClient) {
-    return null; // Or a loading spinner
-  }
-
   const scoresToReset = useMemo(() => {
     if (!lastWinnerId) return null;
     const lastWinner = users.find(u => u.id === lastWinnerId);
@@ -539,6 +535,10 @@ const handleCancelReset = () => {
       scores,
     };
   }, [lastWinnerId, users]);
+
+  if (!isClient) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
