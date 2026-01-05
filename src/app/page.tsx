@@ -128,13 +128,7 @@ export default function Home() {
     return 1;
   });
 
-  const [currentWinnerId, setCurrentWinnerId] = useState<number | null>(() => {
-    if (typeof window !== 'undefined') {
-      const savedCurrentWinnerId = localStorage.getItem('mahjong-currentWinnerId');
-      return savedCurrentWinnerId ? JSON.parse(savedCurrentWinnerId) : null;
-    }
-    return null;
-  });
+  const [currentWinnerId, setCurrentWinnerId] = useState<number | null>(null);
   const [laCounts, setLaCounts] = useState<LaCounts>(() => {
     if (typeof window !== 'undefined') {
       const savedLaCounts = localStorage.getItem('mahjong-laCounts');
@@ -164,7 +158,6 @@ export default function Home() {
     history?: GameState[];
     dealerId?: number;
     consecutiveWins?: number;
-    currentWinnerId?: number | null;
     laCounts?: LaCounts;
   }) => {
     if (isClient) {
@@ -172,7 +165,6 @@ export default function Home() {
       if (data.history !== undefined) localStorage.setItem('mahjong-history', JSON.stringify(data.history));
       if (data.dealerId !== undefined) localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
       if (data.consecutiveWins !== undefined) localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
-      if (data.currentWinnerId !== undefined) localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(data.currentWinnerId));
       if (data.laCounts !== undefined) localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
     }
   };
@@ -438,7 +430,6 @@ export default function Home() {
       history: newHistory,
       dealerId: newDealerId,
       consecutiveWins: newConsecutiveWins,
-      currentWinnerId: mainUserId,
       laCounts: newLaCounts
     });
 
@@ -490,7 +481,6 @@ export default function Home() {
         history: newHistory,
         dealerId: newDealerId,
         consecutiveWins: newConsecutiveWins,
-        currentWinnerId: newCurrentWinnerId,
         laCounts: newLaCounts
     });
   };
@@ -512,7 +502,6 @@ export default function Home() {
           history: newHistory,
           dealerId: lastState.dealerId,
           consecutiveWins: lastState.consecutiveWins,
-          currentWinnerId: lastState.currentWinnerId,
           laCounts: lastState.laCounts,
       });
 
