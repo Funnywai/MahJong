@@ -160,20 +160,20 @@ export default function Home() {
   }, [isClient, popOnNewWinner]);
 
   const saveGameData = (data: {
-    users: UserData[];
-    history: GameState[];
-    dealerId: number;
-    consecutiveWins: number;
-    currentWinnerId: number | null;
-    laCounts: LaCounts;
+    users?: UserData[];
+    history?: GameState[];
+    dealerId?: number;
+    consecutiveWins?: number;
+    currentWinnerId?: number | null;
+    laCounts?: LaCounts;
   }) => {
     if (isClient) {
-      localStorage.setItem('mahjong-users', JSON.stringify(data.users));
-      localStorage.setItem('mahjong-history', JSON.stringify(data.history));
-      localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
-      localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
-      localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(data.currentWinnerId));
-      localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
+      if (data.users !== undefined) localStorage.setItem('mahjong-users', JSON.stringify(data.users));
+      if (data.history !== undefined) localStorage.setItem('mahjong-history', JSON.stringify(data.history));
+      if (data.dealerId !== undefined) localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
+      if (data.consecutiveWins !== undefined) localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
+      if (data.currentWinnerId !== undefined) localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(data.currentWinnerId));
+      if (data.laCounts !== undefined) localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
     }
   };
 
@@ -190,15 +190,12 @@ export default function Home() {
   };
 
   const handleSetDealer = (userId: number) => {
+    const newConsecutiveWins = 1;
     setDealerId(userId);
-    setConsecutiveWins(1);
+    setConsecutiveWins(newConsecutiveWins);
     saveGameData({
-        users,
-        history,
         dealerId: userId,
-        consecutiveWins: 1,
-        currentWinnerId,
-        laCounts,
+        consecutiveWins: newConsecutiveWins,
     });
   };
 
@@ -206,12 +203,8 @@ export default function Home() {
     const newConsecutiveWins = consecutiveWins + 1;
     setConsecutiveWins(newConsecutiveWins);
     saveGameData({
-        users,
-        history,
         dealerId,
         consecutiveWins: newConsecutiveWins,
-        currentWinnerId,
-        laCounts,
     });
   };
 
@@ -467,27 +460,13 @@ export default function Home() {
     });
     setUsers(newUsers);
     setIsRenameDialogOpen(false);
-    saveGameData({
-        users: newUsers,
-        history,
-        dealerId,
-        consecutiveWins,
-        currentWinnerId,
-        laCounts,
-    });
+    saveGameData({ users: newUsers });
   };
 
   const handleSaveSeatChange = (newUsers: UserData[]) => {
     setUsers(newUsers);
     setIsSeatChangeDialogOpen(false);
-    saveGameData({
-        users: newUsers,
-        history,
-        dealerId,
-        consecutiveWins,
-        currentWinnerId,
-        laCounts,
-    });
+    saveGameData({ users: newUsers });
   };
 
   const handleReset = () => {
@@ -517,10 +496,8 @@ export default function Home() {
 
   const handleRestore = () => {
     if (history.length > 0) {
-      const newHistory = [...history];
-      newHistory.pop();
-      
-      const lastState = newHistory[newHistory.length - 1];
+      const newHistory = history.slice(0, -1);
+      const lastState = newHistory.length > 0 ? newHistory[newHistory.length - 1] : null;
 
       if (lastState) {
         setUsers(lastState.users);
@@ -595,9 +572,6 @@ export default function Home() {
     saveGameData({
         users: newUsers,
         history: newHistory,
-        dealerId,
-        consecutiveWins,
-        currentWinnerId,
         laCounts: newLaCounts
     });
   
