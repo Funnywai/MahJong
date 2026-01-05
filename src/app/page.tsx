@@ -535,25 +535,26 @@ export default function Home() {
       { userId: winner.id, change: -scoreToReset },
       { userId: loser.id, change: scoreToReset },
     ];
-
     saveStateToHistory(actionDescription, scoreChanges);
-
+    
     setLaCounts(prev => {
-      const newLaCounts = { ...prev };
-      if (newLaCounts[lastWinnerId]) {
-        newLaCounts[lastWinnerId][loserId] = 0;
-      }
-      return newLaCounts;
+        const newLaCounts = JSON.parse(JSON.stringify(prev));
+        if (newLaCounts[lastWinnerId]) {
+            newLaCounts[lastWinnerId][loserId] = 0;
+        }
+        return newLaCounts;
     });
 
-    setUsers(prev => prev.map(user => {
-      if (user.id === lastWinnerId) {
-        const newWinValues = { ...user.winValues };
-        newWinValues[loserId] = 0;
-        return { ...user, winValues: newWinValues };
-      }
-      return user;
-    }));
+    setUsers(prev => {
+        return prev.map(user => {
+            if (user.id === lastWinnerId) {
+                const newWinValues = { ...user.winValues };
+                newWinValues[loserId] = 0;
+                return { ...user, winValues: newWinValues };
+            }
+            return user;
+        })
+    });
 
     toast({
         title: "Surrendered!",
