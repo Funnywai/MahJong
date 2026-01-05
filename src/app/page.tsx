@@ -59,6 +59,12 @@ const generateInitialUsers = (): UserData[] => {
 
 const initialUsers = generateInitialUsers();
 
+interface ScoresToReset {
+  winnerName: string;
+  winnerId: number;
+  scores: { [opponentId: number]: number };
+}
+
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
 
@@ -121,6 +127,8 @@ export default function Home() {
     }
     return {};
   });
+  const [scoresToReset, setScoresToReset] = useState<ScoresToReset | null>(null);
+
 
   useEffect(() => {
     if(isClient) {
@@ -194,7 +202,25 @@ export default function Home() {
   ) => {
     const isNewWinner = mainUserId !== lastWinnerId && lastWinnerId !== null;
     if (isNewWinner) {
-        setIsResetScoresDialogOpen(true);
+        const previousWinner = users.find(u => u.id === lastWinnerId);
+        if (previousWinner) {
+            const scores = Object.keys(previousWinner.winValues).reduce((acc, opponentId) => {
+                const score = previousWinner.winValues[parseInt(opponentId)];
+                if (score > 0) {
+                    acc[parseInt(opponentId)] = score;
+                }
+                return acc;
+            }, {} as { [opponentId: number]: number });
+
+            if (Object.keys(scores).length > 0) {
+                setScoresToReset({
+                    winnerName: previousWinner.name,
+                    winnerId: previousWinner.id,
+                    scores,
+                });
+                setIsResetScoresDialogOpen(true);
+            }
+        }
     }
 
     if (targetUserId) {
@@ -418,28 +444,6 @@ export default function Home() {
   
     return scores;
   }, [history, users]);
-
-  const scoresToReset = useMemo(() => {
-    if (!lastWinnerId) return null;
-    const lastWinner = users.find(u => u.id === lastWinnerId);
-    if (!lastWinner) return null;
-    
-    const scores = Object.keys(lastWinner.winValues).reduce((acc, opponentId) => {
-      const score = lastWinner.winValues[parseInt(opponentId)];
-      if (score > 0) {
-        acc[parseInt(opponentId)] = score;
-      }
-      return acc;
-    }, {} as { [opponentId: number]: number });
-  
-    if (Object.keys(scores).length === 0) return null;
-
-    return {
-      winnerName: lastWinner.name,
-      winnerId: lastWinner.id,
-      scores,
-    };
-  }, [lastWinnerId, users]);
 
   const memoizedTableBody = useMemo(() => (
     <TableBody>
