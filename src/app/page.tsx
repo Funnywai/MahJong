@@ -53,7 +53,7 @@ export interface ScoreChange {
 interface GameState {
   users: UserData[];
   laCounts: LaCounts;
-  lastWinnerId: number | null;
+  currentWinnerId: number | null;
   dealerId: number;
   consecutiveWins: number;
   action: string;
@@ -135,10 +135,10 @@ export default function Home() {
     return 1;
   });
 
-  const [lastWinnerId, setLastWinnerId] = useState<number | null>(() => {
+  const [currentWinnerId, setCurrentWinnerId] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
-      const savedLastWinnerId = localStorage.getItem('mahjong-lastWinnerId');
-      return savedLastWinnerId ? JSON.parse(savedLastWinnerId) : null;
+      const savedCurrentWinnerId = localStorage.getItem('mahjong-currentWinnerId');
+      return savedCurrentWinnerId ? JSON.parse(savedCurrentWinnerId) : null;
     }
     return null;
   });
@@ -171,7 +171,7 @@ export default function Home() {
     history: GameState[];
     dealerId: number;
     consecutiveWins: number;
-    lastWinnerId: number | null;
+    currentWinnerId: number | null;
     laCounts: LaCounts;
   }) => {
     if (isClient) {
@@ -179,7 +179,7 @@ export default function Home() {
       localStorage.setItem('mahjong-history', JSON.stringify(data.history));
       localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
       localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
-      localStorage.setItem('mahjong-lastWinnerId', JSON.stringify(data.lastWinnerId));
+      localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(data.currentWinnerId));
       localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
       localStorage.setItem('mahjong-undone-history', JSON.stringify([])); // Clear redo on new action
     }
@@ -206,7 +206,7 @@ export default function Home() {
         history,
         dealerId: userId,
         consecutiveWins: 1,
-        lastWinnerId,
+        currentWinnerId,
         laCounts,
     });
   };
@@ -219,7 +219,7 @@ export default function Home() {
         history,
         dealerId,
         consecutiveWins: newConsecutiveWins,
-        lastWinnerId,
+        currentWinnerId,
         laCounts,
     });
   };
@@ -245,8 +245,8 @@ export default function Home() {
   };
 
 
-  const updateLaCounts = (winnerId: number, loserIds: number[], currentLaCounts: LaCounts, currentLastWinnerId: number | null) => {
-    const newLaCounts: LaCounts = winnerId === currentLastWinnerId ? { ...currentLaCounts } : {};
+  const updateLaCounts = (winnerId: number, loserIds: number[], currentLaCounts: LaCounts, currentWinnerId: number | null) => {
+    const newLaCounts: LaCounts = winnerId === currentWinnerId ? { ...currentLaCounts } : {};
 
     if (!newLaCounts[winnerId]) {
       newLaCounts[winnerId] = {};
@@ -265,10 +265,10 @@ export default function Home() {
     value: number,
     targetUserId?: number
   ) => {
-    const isNewWinner = mainUserId !== lastWinnerId && lastWinnerId !== null;
+    const isNewWinner = mainUserId !== currentWinnerId && currentWinnerId !== null;
     const currentWinner = users.find(u => u.id === mainUserId);
     if (isNewWinner && popOnNewWinner) {
-        const previousWinner = users.find(u => u.id === lastWinnerId);
+        const previousWinner = users.find(u => u.id === currentWinnerId);
         if (previousWinner) {
             const hasScores = Object.values(previousWinner.winValues).some(score => score > 0);
 
@@ -306,7 +306,7 @@ export default function Home() {
         }
 
         let finalValue = currentScore;
-        const previousWinner = users.find(u => u.id === lastWinnerId);
+        const previousWinner = users.find(u => u.id === currentWinnerId);
 
         if (previousWinner && previousWinner.id === mainUserId) {
             const previousScore = winner?.winValues[targetUserId] || 0;
@@ -329,7 +329,7 @@ export default function Home() {
             { userId: targetUserId, change: -changeAmount },
         ];
         
-        newLaCounts = updateLaCounts(mainUserId, [targetUserId], laCounts, lastWinnerId);
+        newLaCounts = updateLaCounts(mainUserId, [targetUserId], laCounts, currentWinnerId);
 
         finalUsers = users.map(user => {
             if (isNewWinner && user.id !== mainUserId) {
@@ -372,7 +372,7 @@ export default function Home() {
         const scoresToAdd: { [opponentId: number]: number } = {};
         let winnerTotalChange = 0;
         const currentScoreChanges: ScoreChange[] = [];
-        const previousWinner = users.find(u => u.id === lastWinnerId);
+        const previousWinner = users.find(u => u.id === currentWinnerId);
 
         opponentIds.forEach(opponentId => {
             let currentScore = value;
@@ -405,7 +405,7 @@ export default function Home() {
         currentScoreChanges.push({ userId: mainUserId, change: winnerTotalChange });
         scoreChanges = currentScoreChanges;
 
-        newLaCounts = updateLaCounts(mainUserId, opponentIds, laCounts, lastWinnerId);
+        newLaCounts = updateLaCounts(mainUserId, opponentIds, laCounts, currentWinnerId);
         
         finalUsers = users.map(user => {
             if (isNewWinner && user.id !== mainUserId) {
@@ -436,7 +436,7 @@ export default function Home() {
     const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
         users: JSON.parse(JSON.stringify(users)),
         laCounts: JSON.parse(JSON.stringify(laCounts)),
-        lastWinnerId,
+        currentWinnerId,
         dealerId,
         consecutiveWins,
     };
@@ -444,7 +444,7 @@ export default function Home() {
 
     setUsers(finalUsers);
     setLaCounts(newLaCounts);
-    setLastWinnerId(mainUserId);
+    setCurrentWinnerId(mainUserId);
     setDealerId(newDealerId);
     setConsecutiveWins(newConsecutiveWins);
     
@@ -453,7 +453,7 @@ export default function Home() {
       history: newHistory,
       dealerId: newDealerId,
       consecutiveWins: newConsecutiveWins,
-      lastWinnerId: mainUserId,
+      currentWinnerId: mainUserId,
       laCounts: newLaCounts
     });
 
@@ -481,7 +481,7 @@ export default function Home() {
         history,
         dealerId,
         consecutiveWins,
-        lastWinnerId,
+        currentWinnerId,
         laCounts,
     });
   };
@@ -494,7 +494,7 @@ export default function Home() {
         history,
         dealerId,
         consecutiveWins,
-        lastWinnerId,
+        currentWinnerId,
         laCounts,
     });
   };
@@ -504,12 +504,12 @@ export default function Home() {
     const newHistory: GameState[] = [];
     const newDealerId = users[0]?.id || 1;
     const newConsecutiveWins = 1;
-    const newLastWinnerId = null;
+    const newCurrentWinnerId = null;
     const newLaCounts = {};
 
     setUsers(newUsers);
     setLaCounts(newLaCounts);
-    setLastWinnerId(newLastWinnerId);
+    setCurrentWinnerId(newCurrentWinnerId);
     setHistory(newHistory);
     setDealerId(newDealerId);
     setConsecutiveWins(newConsecutiveWins);
@@ -520,7 +520,7 @@ export default function Home() {
         history: newHistory,
         dealerId: newDealerId,
         consecutiveWins: newConsecutiveWins,
-        lastWinnerId: newLastWinnerId,
+        currentWinnerId: newCurrentWinnerId,
         laCounts: newLaCounts
     });
   };
@@ -535,7 +535,7 @@ export default function Home() {
 
         setUsers(lastState.users);
         setLaCounts(lastState.laCounts);
-        setLastWinnerId(lastState.lastWinnerId);
+        setCurrentWinnerId(lastState.currentWinnerId);
         setDealerId(lastState.dealerId);
         setConsecutiveWins(lastState.consecutiveWins);
         setHistory(newHistory);
@@ -545,7 +545,7 @@ export default function Home() {
             history: newHistory,
             dealerId: lastState.dealerId,
             consecutiveWins: lastState.consecutiveWins,
-            lastWinnerId: lastState.lastWinnerId,
+            currentWinnerId: lastState.currentWinnerId,
             laCounts: lastState.laCounts,
         });
 
@@ -565,7 +565,7 @@ export default function Home() {
       setHistory(newHistory);
       setUsers(nextState.users);
       setLaCounts(nextState.laCounts);
-      setLastWinnerId(nextState.lastWinnerId);
+      setCurrentWinnerId(nextState.currentWinnerId);
       setDealerId(nextState.dealerId);
       setConsecutiveWins(nextState.consecutiveWins);
       setUndoneHistory(newUndoneHistory);
@@ -575,7 +575,7 @@ export default function Home() {
         history: newHistory,
         dealerId: nextState.dealerId,
         consecutiveWins: nextState.consecutiveWins,
-        lastWinnerId: nextState.lastWinnerId,
+        currentWinnerId: nextState.currentWinnerId,
         laCounts: nextState.laCounts,
       });
 
@@ -586,9 +586,9 @@ export default function Home() {
   };
 
   const handleSurrender = (loserId: number) => {
-    if (!lastWinnerId) return;
+    if (!currentWinnerId) return;
   
-    const winner = users.find(u => u.id === lastWinnerId);
+    const winner = users.find(u => u.id === currentWinnerId);
     const loser = users.find(u => u.id === loserId);
   
     if (!winner || !loser) return;
@@ -600,7 +600,7 @@ export default function Home() {
     const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
         users: JSON.parse(JSON.stringify(users)),
         laCounts: JSON.parse(JSON.stringify(laCounts)),
-        lastWinnerId,
+        currentWinnerId,
         dealerId,
         consecutiveWins,
     };
@@ -612,13 +612,13 @@ export default function Home() {
     const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
     
     const newLaCounts = { ...laCounts };
-    if (newLaCounts[lastWinnerId]) {
-      newLaCounts[lastWinnerId][loserId] = 0;
+    if (newLaCounts[currentWinnerId]) {
+      newLaCounts[currentWinnerId][loserId] = 0;
     }
     setLaCounts(newLaCounts);
   
     const newUsers = users.map(user => {
-      if (user.id === lastWinnerId) {
+      if (user.id === currentWinnerId) {
         const newWinValues = { ...user.winValues };
         newWinValues[loserId] = 0;
         return { ...user, winValues: newWinValues };
@@ -632,7 +632,7 @@ export default function Home() {
         history: newHistory,
         dealerId,
         consecutiveWins,
-        lastWinnerId,
+        currentWinnerId,
         laCounts: newLaCounts
     });
   
@@ -703,12 +703,12 @@ export default function Home() {
         );
       })}
     </TableBody>
-  ), [users, totalScores, dealerId, consecutiveWins, lastWinnerId, laCounts]);
+  ), [users, totalScores, dealerId, consecutiveWins, currentWinnerId, laCounts]);
 
   const tableOpponentHeaders = useMemo(() => {
     return (
         users.map(user => {
-            const laCount = lastWinnerId != null && laCounts[lastWinnerId]?.[user.id];
+            const laCount = currentWinnerId != null && laCounts[currentWinnerId]?.[user.id];
             const canSurrender = laCount >= 3;
             return (
               <TableHead key={user.id} className="text-center w-[120px] p-2">
@@ -727,7 +727,7 @@ export default function Home() {
             )
         })
     );
-  }, [users, laCounts, lastWinnerId]);
+  }, [users, laCounts, currentWinnerId]);
 
   if (!isClient) {
     return null;
