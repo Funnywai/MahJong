@@ -203,7 +203,6 @@ export default function Home() {
     const newConsecutiveWins = consecutiveWins + 1;
     setConsecutiveWins(newConsecutiveWins);
     saveGameData({
-        dealerId,
         consecutiveWins: newConsecutiveWins,
     });
   };
@@ -249,6 +248,15 @@ export default function Home() {
     value: number,
     targetUserId?: number
   ) => {
+    // Capture the state BEFORE any changes for the history log.
+    const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
+        users: JSON.parse(JSON.stringify(users)),
+        laCounts: JSON.parse(JSON.stringify(laCounts)),
+        currentWinnerId,
+        dealerId,
+        consecutiveWins,
+    };
+
     const isNewWinner = mainUserId !== currentWinnerId && currentWinnerId !== null;
     const currentWinner = users.find(u => u.id === mainUserId);
     if (isNewWinner && popOnNewWinner) {
@@ -417,13 +425,6 @@ export default function Home() {
 
     const { newDealerId, newConsecutiveWins } = handleWin(mainUserId, dealerId, consecutiveWins);
 
-    const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
-        users: JSON.parse(JSON.stringify(users)),
-        laCounts: JSON.parse(JSON.stringify(laCounts)),
-        currentWinnerId,
-        dealerId,
-        consecutiveWins,
-    };
     const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
 
     setUsers(finalUsers);
@@ -496,33 +497,28 @@ export default function Home() {
 
   const handleRestore = () => {
     if (history.length > 0) {
+      const lastState = history[history.length - 1];
       const newHistory = history.slice(0, -1);
-      const lastState = newHistory.length > 0 ? newHistory[newHistory.length - 1] : null;
+      
+      setUsers(lastState.users);
+      setLaCounts(lastState.laCounts);
+      setCurrentWinnerId(lastState.currentWinnerId);
+      setDealerId(lastState.dealerId);
+      setConsecutiveWins(lastState.consecutiveWins);
+      setHistory(newHistory);
 
-      if (lastState) {
-        setUsers(lastState.users);
-        setLaCounts(lastState.laCounts);
-        setCurrentWinnerId(lastState.currentWinnerId);
-        setDealerId(lastState.dealerId);
-        setConsecutiveWins(lastState.consecutiveWins);
-        setHistory(newHistory);
+      saveGameData({
+          users: lastState.users,
+          history: newHistory,
+          dealerId: lastState.dealerId,
+          consecutiveWins: lastState.consecutiveWins,
+          currentWinnerId: lastState.currentWinnerId,
+          laCounts: lastState.laCounts,
+      });
 
-        saveGameData({
-            users: lastState.users,
-            history: newHistory,
-            dealerId: lastState.dealerId,
-            consecutiveWins: lastState.consecutiveWins,
-            currentWinnerId: lastState.currentWinnerId,
-            laCounts: lastState.laCounts,
-        });
-
-        toast({ description: "Last action restored." });
-      } else {
-        handleReset();
-        toast({ description: "History is empty. Game has been reset." });
-      }
+      toast({ description: "Last action restored." });
     } else {
-      toast({ description: "No actions to restore." });
+        toast({ description: "No actions to restore." });
     }
   };
 
