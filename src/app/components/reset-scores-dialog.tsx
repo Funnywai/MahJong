@@ -42,7 +42,7 @@ export function ResetScoresDialog({ isOpen, onClose, scoresToReset, users }: Res
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{scoresToReset.previousWinnerName} 收 {scoresToReset.currentWinnerName}</DialogTitle>
+          <DialogTitle>{scoresToReset.previousWinnerName} 收</DialogTitle>
         </DialogHeader>
         <div className="py-4">
             <Table>
@@ -59,7 +59,7 @@ export function ResetScoresDialog({ isOpen, onClose, scoresToReset, users }: Res
                         <TableCell className="font-semibold">{scoresToReset.previousWinnerName}</TableCell>
                         {users.map(user => (
                             <TableCell key={user.id} className="text-center font-semibold text-destructive">
-                                {scoresToReset.previousWinnerId === user.id ? '-' : ((scoresToReset.currentWinnerId === user.id ? scoresToReset.scores[user.id] /2 : scoresToReset.scores[user.id]) || 0).toLocaleString()}
+                                {scoresToReset.previousWinnerId === user.id ? '-' : ((scoresToReset.scores[user.id]) || 0).toLocaleString()}
                             </TableCell>
                         ))}
                     </TableRow>

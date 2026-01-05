@@ -160,6 +160,10 @@ export default function Home() {
     setDealerId(userId);
     setConsecutiveWins(1);
   };
+  
+  const handleManualConsecutiveWin = () => {
+    setConsecutiveWins(prev => prev + 1);
+  };
 
   const handleOpenWinActionDialog = (user: UserData) => {
     setCurrentUserForWinAction(user);
@@ -477,9 +481,16 @@ export default function Home() {
             <TableCell className="font-semibold text-foreground/90 align-top p-2">
               <div className="flex flex-col gap-2 items-start">
                 <div className="flex flex-col items-start gap-1">
-                  <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-sm w-auto px-1 h-6 rounded-md hover:bg-primary/20", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
-                    {isDealer && consecutiveWins > 1 ? `連${consecutiveWins}` : ''}莊
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-sm w-auto px-1 h-6 rounded-md hover:bg-primary/20", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
+                      {isDealer && consecutiveWins > 1 ? `連${consecutiveWins}` : ''}莊
+                    </button>
+                    {isDealer && (
+                      <button onClick={handleManualConsecutiveWin} className="flex items-center justify-center font-bold text-sm w-auto px-2 h-6 rounded-md bg-blue-200 text-blue-800 hover:bg-blue-300">
+                        連莊
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-primary"/>
                     {user.name}
