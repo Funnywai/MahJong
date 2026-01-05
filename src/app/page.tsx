@@ -11,7 +11,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2 } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from '@/hooks/use-toast';
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
@@ -593,26 +599,48 @@ export default function Home() {
     <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
       <div className="w-full max-w-4xl">
         <header className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
-              <Pencil className="mr-2 h-4 w-4" /> 改名
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
-              <Shuffle className="mr-2 h-4 w-4" /> 換位
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
-              <HistoryIcon className="mr-2 h-4 w-4" /> 還原
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleRedo} disabled={undoneHistory.length === 0}>
-              <Redo2 className="mr-2 h-4 w-4" /> 重做
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 重置
-            </Button>
-             <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
-              <List className="mr-2 h-4 w-4" /> 歷史記錄
-            </Button>
-          </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+                <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" /> 改名
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
+                    <Shuffle className="mr-2 h-4 w-4" /> 換位
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0} className="hidden sm:inline-flex">
+                    <HistoryIcon className="mr-2 h-4 w-4" /> 還原
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleRedo} disabled={undoneHistory.length === 0} className="hidden sm:inline-flex">
+                    <Redo2 className="mr-2 h-4 w-4" /> 重做
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleReset} className="hidden md:inline-flex">
+                    <RefreshCw className="mr-2 h-4 w-4" /> 重置
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0} className="hidden md:inline-flex">
+                    <List className="mr-2 h-4 w-4" /> 歷史記錄
+                </Button>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="md:hidden">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={handleRestore} disabled={history.length === 0} className="sm:hidden">
+                            <HistoryIcon className="mr-2 h-4 w-4" /> 還原
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleRedo} disabled={undoneHistory.length === 0} className="sm:hidden">
+                            <Redo2 className="mr-2 h-4 w-4" /> 重做
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleReset} className="md:hidden">
+                           <RefreshCw className="mr-2 h-4 w-4" /> 重置
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0} className="md:hidden">
+                            <List className="mr-2 h-4 w-4" /> 歷史記錄
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </header>
 
         <Card className="shadow-lg border-primary/10">
