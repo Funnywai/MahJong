@@ -61,7 +61,7 @@ export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: Wi
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>食 - {mainUser.name}</DialogTitle>
+          <DialogTitle>食胡 - {mainUser.name}</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
           <div className="space-y-2">

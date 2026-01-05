@@ -209,6 +209,10 @@ export default function Home() {
     setIsWinActionDialogOpen(true);
   };
 
+  const handleSpecialWin = (userId: number) => {
+    executeWinAction(userId, 5);
+  };
+
   const handleWin = (winnerId: number, currentDealerId: number, currentConsecutiveWins: number) => {
     if (winnerId === currentDealerId) {
       return { newDealerId: currentDealerId, newConsecutiveWins: currentConsecutiveWins + 1 };
@@ -607,9 +611,12 @@ export default function Home() {
                     {user.name}
                   </div>
                 </div>
-                <div className="flex flex-col items-stretch gap-2">
+                <div className="flex items-stretch gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
-                     食
+                     食胡
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleSpecialWin(user.id)}>
+                     特別賞罰
                   </Button>
                 </div>
                 <div className="font-bold text-lg mt-1">
