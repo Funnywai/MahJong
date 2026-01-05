@@ -30,6 +30,7 @@ import { HistoryDialog } from '@/app/components/history-dialog';
 import { SeatChangeDialog } from '@/app/components/seat-change-dialog';
 import { ResetScoresDialog } from '@/app/components/reset-scores-dialog';
 import { PayoutDialog } from '@/app/components/payout-dialog';
+import { SpecialActionDialog } from '@/app/components/special-action-dialog';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -107,6 +108,7 @@ export default function Home() {
   const [isSeatChangeDialogOpen, setIsSeatChangeDialogOpen] = useState(false);
   const [isResetScoresDialogOpen, setIsResetScoresDialogOpen] = useState(false);
   const [isPayoutDialogOpen, setIsPayoutDialogOpen] = useState(false);
+  const [isSpecialActionDialogOpen, setIsSpecialActionDialogOpen] = useState(false);
 
 
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
@@ -208,9 +210,55 @@ export default function Home() {
     setCurrentUserForWinAction(user);
     setIsWinActionDialogOpen(true);
   };
+  
+  const handleOpenSpecialActionDialog = (user: UserData) => {
+    setCurrentUserForWinAction(user);
+    setIsSpecialActionDialogOpen(true);
+  };
 
-  const handleSpecialWin = (userId: number) => {
-    executeWinAction(userId, 5);
+  const handleExecuteSpecialAction = (mainUserId: number, actionType: 'collect' | 'pay') => {
+    const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
+      users: JSON.parse(JSON.stringify(users)),
+      laCounts: JSON.parse(JSON.stringify(laCounts)),
+      currentWinnerId,
+      dealerId,
+      consecutiveWins,
+    };
+  
+    const mainUser = users.find(u => u.id === mainUserId);
+    if (!mainUser) return;
+  
+    const amount = 5;
+    const scoreChanges: ScoreChange[] = [];
+    const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
+  
+    let mainUserChange = 0;
+    let actionDescription = '';
+  
+    if (actionType === 'collect') {
+      mainUserChange = amount * opponentIds.length;
+      opponentIds.forEach(id => scoreChanges.push({ userId: id, change: -amount }));
+      actionDescription = `${mainUser.name} 收 ${amount} from everyone`;
+    } else { // pay
+      mainUserChange = -amount * opponentIds.length;
+      opponentIds.forEach(id => scoreChanges.push({ userId: id, change: amount }));
+      actionDescription = `${mainUser.name} 賠 ${amount} to everyone`;
+    }
+  
+    scoreChanges.push({ userId: mainUserId, change: mainUserChange });
+  
+    const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
+  
+    saveGameData({
+      history: newHistory,
+    });
+
+    toast({
+        title: "Special Action Recorded",
+        description: actionDescription,
+    });
+  
+    setIsSpecialActionDialogOpen(false);
   };
 
   const handleWin = (winnerId: number, currentDealerId: number, currentConsecutiveWins: number) => {
@@ -613,9 +661,9 @@ export default function Home() {
                 </div>
                 <div className="flex items-stretch gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
-                     食胡
+                     食
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleSpecialWin(user.id)}>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenSpecialActionDialog(user)}>
                      特別賞罰
                   </Button>
                 </div>
@@ -744,6 +792,14 @@ export default function Home() {
           mainUser={currentUserForWinAction}
           users={users.filter(u => u.id !== currentUserForWinAction.id)}
           onSave={handleSaveWinAction}
+        />
+       )}
+      {currentUserForWinAction && (
+        <SpecialActionDialog
+          isOpen={isSpecialActionDialogOpen}
+          onClose={() => setIsSpecialActionDialogOpen(false)}
+          mainUser={currentUserForWinAction}
+          onSave={handleExecuteSpecialAction}
         />
        )}
        <HistoryDialog
