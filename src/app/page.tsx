@@ -63,6 +63,7 @@ interface ScoresToReset {
   previousWinnerName: string;
   previousWinnerId: number;
   currentWinnerName: string;
+  currentWinnerId: number;
   scores: { [opponentId: number]: number };
 }
 
@@ -219,6 +220,7 @@ export default function Home() {
                     previousWinnerName: previousWinner.name,
                     previousWinnerId: previousWinner.id,
                     currentWinnerName: currentWinner?.name || '',
+                    currentWinnerId: mainUserId,
                     scores,
                 });
                 setIsResetScoresDialogOpen(true);
@@ -243,11 +245,21 @@ export default function Home() {
 
         let finalValue = currentScore;
         const previousWinner = users.find(u => u.id === lastWinnerId);
+        
+        // Consecutive win bonus
         if (previousWinner && previousWinner.id === mainUserId) {
             const previousScore = winner?.winValues[targetUserId] || 0;
             if (previousScore > 0) {
                 const bonus = Math.round(previousScore * 0.5);
                 finalValue = previousScore + bonus + currentScore;
+            }
+        }
+
+        // Kick back bonus
+        if (isNewWinner && previousWinner && targetUserId === previousWinner.id) {
+            const previousScoreOnWinner = previousWinner.winValues[mainUserId] || 0;
+            if (previousScoreOnWinner > 0) {
+                finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
             }
         }
         

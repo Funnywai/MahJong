@@ -24,6 +24,7 @@ interface ScoresToReset {
   previousWinnerName: string;
   previousWinnerId: number;
   currentWinnerName: string;
+  currentWinnerId: number;
   scores: { [opponentId: number]: number };
 }
 
@@ -58,7 +59,7 @@ export function ResetScoresDialog({ isOpen, onClose, scoresToReset, users }: Res
                         <TableCell className="font-semibold">{scoresToReset.previousWinnerName}</TableCell>
                         {users.map(user => (
                             <TableCell key={user.id} className="text-center font-semibold text-destructive">
-                                {scoresToReset.previousWinnerId === user.id ? '-' : (scoresToReset.scores[user.id] || 0).toLocaleString()}
+                                {scoresToReset.previousWinnerId === user.id ? '-' : ((scoresToReset.currentWinnerId === user.id ? scoresToReset.scores[user.id] /2 : scoresToReset.scores[user.id]) || 0).toLocaleString()}
                             </TableCell>
                         ))}
                     </TableRow>
