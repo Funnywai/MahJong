@@ -128,7 +128,14 @@ export default function Home() {
     return 1;
   });
 
-  const [currentWinnerId, setCurrentWinnerId] = useState<number | null>(null);
+  const [currentWinnerId, setCurrentWinnerId] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const savedWinnerId = localStorage.getItem('mahjong-currentWinnerId');
+      return savedWinnerId ? JSON.parse(savedWinnerId) : null;
+    }
+    return null;
+  });
+
   const [laCounts, setLaCounts] = useState<LaCounts>(() => {
     if (typeof window !== 'undefined') {
       const savedLaCounts = localStorage.getItem('mahjong-laCounts');
@@ -159,6 +166,7 @@ export default function Home() {
     dealerId?: number;
     consecutiveWins?: number;
     laCounts?: LaCounts;
+    currentWinnerId?: number | null;
   }) => {
     if (isClient) {
       if (data.users !== undefined) localStorage.setItem('mahjong-users', JSON.stringify(data.users));
@@ -166,6 +174,7 @@ export default function Home() {
       if (data.dealerId !== undefined) localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
       if (data.consecutiveWins !== undefined) localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
       if (data.laCounts !== undefined) localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
+      if (data.currentWinnerId !== undefined) localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(data.currentWinnerId));
     }
   };
 
@@ -430,7 +439,8 @@ export default function Home() {
       history: newHistory,
       dealerId: newDealerId,
       consecutiveWins: newConsecutiveWins,
-      laCounts: newLaCounts
+      laCounts: newLaCounts,
+      currentWinnerId: mainUserId,
     });
 
     setIsWinActionDialogOpen(false);
@@ -481,7 +491,8 @@ export default function Home() {
         history: newHistory,
         dealerId: newDealerId,
         consecutiveWins: newConsecutiveWins,
-        laCounts: newLaCounts
+        laCounts: newLaCounts,
+        currentWinnerId: newCurrentWinnerId,
     });
   };
 
@@ -503,6 +514,7 @@ export default function Home() {
           dealerId: lastState.dealerId,
           consecutiveWins: lastState.consecutiveWins,
           laCounts: lastState.laCounts,
+          currentWinnerId: lastState.currentWinnerId,
       });
 
       toast({ description: "Last action restored." });
@@ -523,21 +535,6 @@ export default function Home() {
     const scoreToReset = winner.winValues[loserId] || 0;
     if (scoreToReset === 0) return;
   
-    const actionDescription = `${loser.name} 投降 to ${winner.name}`;
-    const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
-        users: JSON.parse(JSON.stringify(users)),
-        laCounts: JSON.parse(JSON.stringify(laCounts)),
-        currentWinnerId,
-        dealerId,
-        consecutiveWins,
-    };
-    const change = -winner.winValues[loserId] || 0;
-    const scoreChanges: ScoreChange[] = [
-        { userId: winner.id, change: change },
-        { userId: loser.id, change: -change },
-    ];
-    const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
-    
     const newLaCounts = { ...laCounts };
     if (newLaCounts[currentWinnerId]) {
       newLaCounts[currentWinnerId][loserId] = 0;
@@ -556,7 +553,6 @@ export default function Home() {
 
     saveGameData({
         users: newUsers,
-        history: newHistory,
         laCounts: newLaCounts
     });
   
