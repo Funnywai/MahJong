@@ -18,6 +18,7 @@ import { WinActionDialog } from '@/app/components/win-action-dialog';
 import { ZimoActionDialog } from '@/app/components/zimo-action-dialog';
 import { HistoryDialog } from '@/app/components/history-dialog';
 import { SeatChangeDialog } from '@/app/components/seat-change-dialog';
+import { ResetScoresDialog } from '@/app/components/reset-scores-dialog';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -46,6 +47,13 @@ interface GameState {
   action: string;
   scoreChanges: ScoreChange[];
 }
+
+type PendingWinAction = {
+  type: 'win' | 'zimo';
+  mainUserId: number;
+  targetUserId?: number;
+  value: number;
+} | null;
 
 const generateInitialUsers = (): UserData[] => {
   const userCount = 4;
@@ -86,8 +94,12 @@ export default function Home() {
   const [isZimoActionDialogOpen, setIsZimoActionDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isSeatChangeDialogOpen, setIsSeatChangeDialogOpen] = useState(false);
+  const [isResetScoresDialogOpen, setIsResetScoresDialogOpen] = useState(false);
+
   
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
+  const [pendingWinAction, setPendingWinAction] = useState<PendingWinAction>(null);
+
   const [dealerId, setDealerId] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       const savedDealerId = localStorage.getItem('mahjong-dealerId');
@@ -183,154 +195,197 @@ export default function Home() {
     setLastWinnerId(winnerId);
   };
 
-
-  const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
-    const winner = users.find(u => u.id === mainUserId);
-    const loser = users.find(u => u.id === targetUserId);
-    const actionDescription = `${winner?.name} 食胡 ${loser?.name} ${value}番`;
-    
-    let currentScore = value;
-    const dealerBonus = 2 * consecutiveWins - 1;
-
-    if (mainUserId === dealerId) {
-      currentScore += dealerBonus;
-    } else if (targetUserId === dealerId) {
-      currentScore += dealerBonus;
-    }
-
-    let finalValue = currentScore;
-    const previousWinner = users.find(u => u.id === lastWinnerId);
-    if (previousWinner && previousWinner.id === mainUserId) {
-        const previousScore = winner?.winValues[targetUserId] || 0;
-        if (previousScore > 0) {
-            const bonus = Math.round(previousScore * 0.5);
-            finalValue = previousScore + bonus + currentScore;
-        }
-    }
-    
-    const scoreChanges: ScoreChange[] = [
-      { userId: mainUserId, change: finalValue - (users.find(u=>u.id===mainUserId)?.winValues[targetUserId] || 0) },
-      { userId: targetUserId, change: -(finalValue - (users.find(u=>u.id===mainUserId)?.winValues[targetUserId] || 0)) },
-    ];
-    saveStateToHistory(actionDescription, scoreChanges);
-    
-    updateLaCounts(mainUserId, [targetUserId]);
-
-    setUsers(prevUsers => {
-      const isNewWinner = mainUserId !== lastWinnerId;
-      
-      let updatedUsers = prevUsers.map(user => {
-          if (isNewWinner && user.id !== mainUserId) {
-              return { ...user, winValues: {} };
-          }
-          return user;
-      });
-
-      updatedUsers = updatedUsers.map(user => {
-        if (user.id === mainUserId) {
-          const newWinValues = isNewWinner ? {} : { ...user.winValues };
-          newWinValues[targetUserId] = finalValue;
-
-          // When a new winner wins, reset other opponent scores for the winner.
-          if (isNewWinner) {
-              Object.keys(newWinValues).forEach(key => {
-                  if (parseInt(key) !== targetUserId) {
-                      newWinValues[parseInt(key)] = 0;
-                  }
-              });
-          }
-          
-          return { ...user, winValues: newWinValues };
-        }
-        if (user.id !== mainUserId) {
-          const newWinValues = { ...user.winValues };
-          if (newWinValues[mainUserId]) {
-            newWinValues[mainUserId] = 0;
-          }
-          return { ...user, winValues: newWinValues };
-        }
-        return user;
-      });
-      return updatedUsers;
-    });
-    handleWin(mainUserId);
-    setIsWinActionDialogOpen(false);
-  };
-  
-const handleSaveZimoAction = (mainUserId: number, value: number) => {
-    const winner = users.find(u => u.id === mainUserId);
-    const actionDescription = `${winner?.name} 自摸 ${value}番`;
-    const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
-    
-    const isDealerWinning = mainUserId === dealerId;
-    const dealerBonus = 2 * consecutiveWins - 1;
-    
-    const scoresToAdd: { [opponentId: number]: number } = {};
-    let winnerTotalChange = 0;
-    const scoreChanges: ScoreChange[] = [];
-
-    opponentIds.forEach(opponentId => {
-        let currentScore = value;
-        if (isDealerWinning) {
-            currentScore += dealerBonus;
-        } else if (opponentId === dealerId) {
-            currentScore += dealerBonus;
-        }
+  const executeWinAction = (
+    mainUserId: number,
+    value: number,
+    targetUserId?: number
+  ) => {
+    if (targetUserId) {
+        // "食胡" case
+        const winner = users.find(u => u.id === mainUserId);
+        const loser = users.find(u => u.id === targetUserId);
+        const actionDescription = `${winner?.name} 食胡 ${loser?.name} ${value}番`;
         
+        let currentScore = value;
+        const dealerBonus = 2 * consecutiveWins - 1;
+
+        if (mainUserId === dealerId) {
+        currentScore += dealerBonus;
+        } else if (targetUserId === dealerId) {
+        currentScore += dealerBonus;
+        }
+
         let finalValue = currentScore;
         const previousWinner = users.find(u => u.id === lastWinnerId);
         if (previousWinner && previousWinner.id === mainUserId) {
-            const previousScore = winner?.winValues[opponentId] || 0;
+            const previousScore = winner?.winValues[targetUserId] || 0;
             if (previousScore > 0) {
                 const bonus = Math.round(previousScore * 0.5);
                 finalValue = previousScore + bonus + currentScore;
             }
         }
-
-        const change = finalValue - (winner?.winValues[opponentId] || 0);
-        scoresToAdd[opponentId] = finalValue;
-        winnerTotalChange += change;
-        scoreChanges.push({ userId: opponentId, change: -change });
-    });
-    scoreChanges.push({ userId: mainUserId, change: winnerTotalChange });
-
-    saveStateToHistory(actionDescription, scoreChanges);
-    updateLaCounts(mainUserId, opponentIds);
-
-    setUsers(prevUsers => {
-        const isNewWinner = mainUserId !== lastWinnerId;
         
-        let updatedUsers = prevUsers.map(user => {
-          if (isNewWinner && user.id !== mainUserId) {
-              return { ...user, winValues: {} };
-          }
-          return user;
-        });
+        const scoreChanges: ScoreChange[] = [
+        { userId: mainUserId, change: finalValue - (users.find(u=>u.id===mainUserId)?.winValues[targetUserId] || 0) },
+        { userId: targetUserId, change: -(finalValue - (users.find(u=>u.id===mainUserId)?.winValues[targetUserId] || 0)) },
+        ];
+        saveStateToHistory(actionDescription, scoreChanges);
+        
+        updateLaCounts(mainUserId, [targetUserId]);
 
-        updatedUsers = updatedUsers.map(user => {
+        setUsers(prevUsers => {
+          const isNewWinner = mainUserId !== lastWinnerId;
+          
+          let updatedUsers = prevUsers.map(user => {
+              if (isNewWinner && user.id !== mainUserId) {
+                  return { ...user, winValues: {} };
+              }
+              return user;
+          });
+
+          updatedUsers = updatedUsers.map(user => {
             if (user.id === mainUserId) {
-                const newWinValues = isNewWinner ? {} : { ...user.winValues };
-                Object.entries(scoresToAdd).forEach(([opponentId, score]) => {
-                    newWinValues[parseInt(opponentId)] = score;
-                });
-                return { ...user, winValues: newWinValues };
+              const newWinValues = isNewWinner ? {} : { ...user.winValues };
+              newWinValues[targetUserId] = finalValue;
+
+              if (isNewWinner) {
+                  Object.keys(newWinValues).forEach(key => {
+                      if (parseInt(key) !== targetUserId) {
+                          newWinValues[parseInt(key)] = 0;
+                      }
+                  });
+              }
+              
+              return { ...user, winValues: newWinValues };
             }
             if (user.id !== mainUserId) {
-                const newWinValues = { ...user.winValues };
-                if (newWinValues[mainUserId]) {
-                    newWinValues[mainUserId] = 0;
-                }
-                return { ...user, winValues: newWinValues };
+              const newWinValues = { ...user.winValues };
+              if (newWinValues[mainUserId]) {
+                newWinValues[mainUserId] = 0;
+              }
+              return { ...user, winValues: newWinValues };
             }
             return user;
+          });
+          return updatedUsers;
         });
+    } else {
+        // "自摸" case
+        const winner = users.find(u => u.id === mainUserId);
+        const actionDescription = `${winner?.name} 自摸 ${value}番`;
+        const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
+        
+        const isDealerWinning = mainUserId === dealerId;
+        const dealerBonus = 2 * consecutiveWins - 1;
+        
+        const scoresToAdd: { [opponentId: number]: number } = {};
+        let winnerTotalChange = 0;
+        const scoreChanges: ScoreChange[] = [];
 
-        return updatedUsers;
-    });
+        opponentIds.forEach(opponentId => {
+            let currentScore = value;
+            if (isDealerWinning) {
+                currentScore += dealerBonus;
+            } else if (opponentId === dealerId) {
+                currentScore += dealerBonus;
+            }
+            
+            let finalValue = currentScore;
+            const previousWinner = users.find(u => u.id === lastWinnerId);
+            if (previousWinner && previousWinner.id === mainUserId) {
+                const previousScore = winner?.winValues[opponentId] || 0;
+                if (previousScore > 0) {
+                    const bonus = Math.round(previousScore * 0.5);
+                    finalValue = previousScore + bonus + currentScore;
+                }
+            }
+
+            const change = finalValue - (winner?.winValues[opponentId] || 0);
+            scoresToAdd[opponentId] = finalValue;
+            winnerTotalChange += change;
+            scoreChanges.push({ userId: opponentId, change: -change });
+        });
+        scoreChanges.push({ userId: mainUserId, change: winnerTotalChange });
+
+        saveStateToHistory(actionDescription, scoreChanges);
+        updateLaCounts(mainUserId, opponentIds);
+
+        setUsers(prevUsers => {
+            const isNewWinner = mainUserId !== lastWinnerId;
+            
+            let updatedUsers = prevUsers.map(user => {
+              if (isNewWinner && user.id !== mainUserId) {
+                  return { ...user, winValues: {} };
+              }
+              return user;
+            });
+
+            updatedUsers = updatedUsers.map(user => {
+                if (user.id === mainUserId) {
+                    const newWinValues = isNewWinner ? {} : { ...user.winValues };
+                    Object.entries(scoresToAdd).forEach(([opponentId, score]) => {
+                        newWinValues[parseInt(opponentId)] = score;
+                    });
+                    return { ...user, winValues: newWinValues };
+                }
+                if (user.id !== mainUserId) {
+                    const newWinValues = { ...user.winValues };
+                    if (newWinValues[mainUserId]) {
+                        newWinValues[mainUserId] = 0;
+                    }
+                    return { ...user, winValues: newWinValues };
+                }
+                return user;
+            });
+
+            return updatedUsers;
+        });
+    }
+
     handleWin(mainUserId);
+    setIsWinActionDialogOpen(false);
     setIsZimoActionDialogOpen(false);
+  };
+
+  const handleSaveWinAction = (mainUserId: number, targetUserId: number, value: number) => {
+    const isNewWinner = mainUserId !== lastWinnerId && lastWinnerId !== null;
+
+    if (isNewWinner) {
+      setPendingWinAction({ type: 'win', mainUserId, targetUserId, value });
+      setIsResetScoresDialogOpen(true);
+      return;
+    }
+
+    executeWinAction(mainUserId, value, targetUserId);
+  };
+  
+const handleSaveZimoAction = (mainUserId: number, value: number) => {
+    const isNewWinner = mainUserId !== lastWinnerId && lastWinnerId !== null;
+
+    if (isNewWinner) {
+      setPendingWinAction({ type: 'zimo', mainUserId, value });
+      setIsResetScoresDialogOpen(true);
+      return;
+    }
+
+    executeWinAction(mainUserId, value);
 };
 
+const handleConfirmReset = () => {
+    if (pendingWinAction) {
+        if (pendingWinAction.type === 'win' && pendingWinAction.targetUserId) {
+            executeWinAction(pendingWinAction.mainUserId, pendingWinAction.value, pendingWinAction.targetUserId);
+        } else if (pendingWinAction.type === 'zimo') {
+            executeWinAction(pendingWinAction.mainUserId, pendingWinAction.value);
+        }
+    }
+    handleCancelReset();
+};
+
+const handleCancelReset = () => {
+    setIsResetScoresDialogOpen(false);
+    setPendingWinAction(null);
+};
   
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     setUsers((prevUsers) => {
@@ -464,6 +519,27 @@ const handleSaveZimoAction = (mainUserId: number, value: number) => {
     return null; // Or a loading spinner
   }
 
+  const scoresToReset = useMemo(() => {
+    if (!lastWinnerId) return null;
+    const lastWinner = users.find(u => u.id === lastWinnerId);
+    if (!lastWinner) return null;
+
+    const scores: { opponentName: string; score: number }[] = [];
+    Object.entries(lastWinner.winValues).forEach(([opponentId, score]) => {
+      if (score > 0) {
+        const opponent = users.find(u => u.id === parseInt(opponentId));
+        if (opponent) {
+          scores.push({ opponentName: opponent.name, score });
+        }
+      }
+    });
+
+    return {
+      winnerName: lastWinner.name,
+      scores,
+    };
+  }, [lastWinnerId, users]);
+
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
       <div className="w-full max-w-4xl">
@@ -543,6 +619,14 @@ const handleSaveZimoAction = (mainUserId: number, value: number) => {
         history={history}
         users={users}
       />
+      {scoresToReset && (
+        <ResetScoresDialog
+            isOpen={isResetScoresDialogOpen}
+            onCancel={handleCancelReset}
+            onConfirm={handleConfirmReset}
+            scoresToReset={scoresToReset}
+        />
+      )}
 
     </main>
   );
