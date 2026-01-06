@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { X } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -55,7 +56,22 @@ export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: Wi
     setTargetUserId(null);
   };
 
+  const handleNumpadClick = (num: string) => {
+    setValue(prev => prev + num);
+  };
+
+  const handleClear = () => {
+    setValue('');
+  };
+
+  const handleBackspace = () => {
+    setValue(prev => prev.slice(0, -1));
+  };
+
+
   if (!mainUser) return null;
+
+  const numpadButtons = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -95,14 +111,31 @@ export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: Wi
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Enter a number"
+              className="text-center text-lg h-12"
             />
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {numpadButtons.map(num => (
+                <Button key={num} variant="outline" size="lg" onClick={() => handleNumpadClick(num)}>
+                  {num}
+                </Button>
+              ))}
+               <Button variant="outline" size="lg" onClick={handleClear}>
+                Clear
+              </Button>
+              <Button variant="outline" size="lg" onClick={() => handleNumpadClick('0')}>
+                0
+              </Button>
+              <Button variant="outline" size="lg" onClick={handleBackspace}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" onClick={handleSave}>
+          <Button type="submit" onClick={handleSave} disabled={!value || (!targetUserId && !isZimo)}>
             Save
           </Button>
         </DialogFooter>
