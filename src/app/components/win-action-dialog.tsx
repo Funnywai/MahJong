@@ -241,27 +241,37 @@ export function WinActionDialog({
 
           {scorePreview && (
             <Card className="bg-secondary/50">
-                <CardHeader className="p-4">
-                    <CardTitle className="text-lg">Score Preview</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 text-sm">
-                    <div className="flex justify-between">
-                        <span>Base Score (番):</span>
-                        <span>{scorePreview.base}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Dealer Bonus (莊):</span>
-                        <span>{scorePreview.dealerBonus}</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span>Consecutive Bonus (拉):</span>
-                        <span>{scorePreview.laBonus}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-base mt-2 border-t pt-2">
-                        <span>Total Win:</span>
-                        <span>{scorePreview.total}</span>
-                    </div>
-                </CardContent>
+              <CardHeader className="p-4">
+                  <CardTitle className="text-lg">Score Preview</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                      <div>
+                          <p className="text-sm text-muted-foreground">Base (番)</p>
+                      </div>
+                      <div>
+                          <p className="text-sm text-muted-foreground">Dealer (莊)</p>
+                      </div>
+                      <div>
+                          <p className="text-sm text-muted-foreground">Bonus (拉)</p>
+                      </div>
+                      <div>
+                          <p className="text-sm font-bold">Total</p>
+                      </div>
+                      <div>
+                          <p className="font-semibold text-lg">{scorePreview.base}</p>
+                      </div>
+                      <div>
+                          <p className="font-semibold text-lg">{scorePreview.dealerBonus}</p>
+                      </div>
+                      <div>
+                          <p className="font-semibold text-lg">{scorePreview.laBonus}</p>
+                      </div>
+                      <div>
+                          <p className="font-bold text-lg">{scorePreview.total}</p>
+                      </div>
+                  </div>
+              </CardContent>
             </Card>
           )}
 
