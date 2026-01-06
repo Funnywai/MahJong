@@ -214,8 +214,7 @@ export function WinActionDialog({
             <Input
               id="value-input"
               type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="none"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Enter a number"

@@ -49,7 +49,7 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
   useEffect(() => {
     if (isOpen) {
       const today = new Date();
-      setFileName(`${format(today, 'yyyy-MM-dd')}-game-history`);
+      setFileName(`${format(today, 'yyyy-MM-dd')}`);
     }
   }, [isOpen]);
 
@@ -124,7 +124,6 @@ export function HistoryDialog({ isOpen, onClose, history, users }: HistoryDialog
         </ScrollArea>
         <DialogFooter className="sm:justify-between">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="csv-filename">File Name</Label>
               <Input 
                 id="csv-filename"
                 value={fileName}

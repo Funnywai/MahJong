@@ -138,8 +138,7 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
                     <Input
                     id="amount-input"
                     type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="none"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="Enter a number"
