@@ -173,6 +173,9 @@ export default function Home() {
       if (data.dealerId !== undefined) localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
       if (data.consecutiveWins !== undefined) localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
       if (data.laCounts !== undefined) localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
+      if (isClient) {
+        localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(currentWinnerId));
+      }
     }
   };
 
@@ -216,7 +219,7 @@ export default function Home() {
     setIsSpecialActionDialogOpen(true);
   };
 
-  const handleExecuteSpecialAction = (mainUserId: number, actionType: 'collect' | 'pay') => {
+  const handleExecuteSpecialAction = (mainUserId: number, actionType: 'collect' | 'pay', amount: number) => {
     const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
       users: JSON.parse(JSON.stringify(users)),
       laCounts: JSON.parse(JSON.stringify(laCounts)),
@@ -228,7 +231,6 @@ export default function Home() {
     const mainUser = users.find(u => u.id === mainUserId);
     if (!mainUser) return;
   
-    const amount = 5;
     const scoreChanges: ScoreChange[] = [];
     const opponentIds = users.filter(u => u.id !== mainUserId).map(u => u.id);
   
@@ -468,14 +470,13 @@ export default function Home() {
     }
 
     const { newDealerId, newConsecutiveWins } = handleWin(mainUserId, dealerId, consecutiveWins);
-
-    const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
-
-    setUsers(finalUsers);
-    setLaCounts(newLaCounts);
     setCurrentWinnerId(mainUserId);
     setDealerId(newDealerId);
     setConsecutiveWins(newConsecutiveWins);
+    setLaCounts(newLaCounts);
+    setUsers(finalUsers);
+
+    const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
     
     saveGameData({
       users: finalUsers,
@@ -484,9 +485,6 @@ export default function Home() {
       consecutiveWins: newConsecutiveWins,
       laCounts: newLaCounts,
     });
-    if (isClient) {
-      localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(mainUserId));
-    }
 
 
     setIsWinActionDialogOpen(false);
