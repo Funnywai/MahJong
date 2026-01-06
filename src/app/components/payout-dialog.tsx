@@ -48,14 +48,11 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>找數 (Payout)</DialogTitle>
-          <DialogDescription>
-            Enter a number to divide the total scores by.
-          </DialogDescription>
+          <DialogTitle>找數</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4">
+        <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="divisor-input">Divide By</Label>
+            <Label htmlFor="divisor-input">除以:</Label>
             <Input
               id="divisor-input"
               type="number"
@@ -69,9 +66,9 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead className="text-right">Total Score</TableHead>
-                <TableHead className="text-right">Payout</TableHead>
+                <TableHead>玩家</TableHead>
+                <TableHead className="text-right">番數</TableHead>
+                <TableHead className="text-right">$HKD</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -102,7 +99,7 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
         </div>
         <DialogFooter>
           <Button type="button" onClick={onClose}>
-            Close
+            關閉
           </Button>
         </DialogFooter>
       </DialogContent>

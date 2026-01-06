@@ -104,9 +104,6 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
 
         {isZhaHuMode ? (
             <div className="space-y-4">
-                <DialogDescription>
-                    Enter the amount {mainUser.name} has to pay each player for the false win.
-                </DialogDescription>
                 <div className="space-y-3">
                     {opponents.map(opponent => (
                         <div key={opponent.id} className="grid grid-cols-3 items-center gap-4">
@@ -119,7 +116,7 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
                                 inputMode="numeric"
                                 value={payouts[opponent.id] ?? ''}
                                 onChange={(e) => handlePayoutChange(opponent.id, e.target.value)}
-                                placeholder="Payout amount"
+                                placeholder="番數"
                                 className="col-span-2"
                             />
                         </div>
@@ -127,10 +124,10 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
                 </div>
                  <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsZhaHuMode(false)}>
-                        Back
+                        返回
                     </Button>
                     <Button type="submit" onClick={handleZhaHuSave}>
-                        Confirm Payout
+                        確定
                     </Button>
                 </DialogFooter>
             </div>
@@ -178,7 +175,7 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
                 </div>
                  <DialogFooter>
                     <Button type="button" variant="outline" onClick={onClose}>
-                        Cancel
+                        取消
                     </Button>
                 </DialogFooter>
             </div>

@@ -228,7 +228,7 @@ export function WinActionDialog({
                 </Button>
               ))}
                <Button variant="outline" size="lg" onClick={handleClear}>
-                Clear
+                清除
               </Button>
               <Button variant="outline" size="lg" onClick={() => handleNumpadClick('0')}>
                 0
@@ -275,10 +275,10 @@ export function WinActionDialog({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            取消
           </Button>
           <Button type="submit" onClick={handleSave} disabled={!value || (!targetUserId && !isZimo)}>
-            Save
+            確定
           </Button>
         </DialogFooter>
       </DialogContent>
