@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { X } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -38,6 +39,20 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, onSave }: Speci
     }
   };
 
+  const handleNumpadClick = (num: string) => {
+    setAmount(prev => prev + num);
+  };
+
+  const handleClear = () => {
+    setAmount('');
+  };
+
+  const handleBackspace = () => {
+    setAmount(prev => prev.slice(0, -1));
+  };
+
+  const numpadButtons = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -51,14 +66,31 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, onSave }: Speci
             <div className="space-y-2">
                 <Label htmlFor="amount-input">Amount</Label>
                 <Input
-                id="amount-input"
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter a number"
+                  id="amount-input"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Enter a number"
+                  className="text-center text-lg h-12"
                 />
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {numpadButtons.map(num => (
+                    <Button key={num} variant="outline" size="lg" onClick={() => handleNumpadClick(num)}>
+                      {num}
+                    </Button>
+                  ))}
+                  <Button variant="outline" size="lg" onClick={handleClear}>
+                    Clear
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={() => handleNumpadClick('0')}>
+                    0
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={handleBackspace}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
             </div>
             <div className="flex justify-center gap-4">
             <Button size="lg" onClick={() => handleSave('collect')}>
