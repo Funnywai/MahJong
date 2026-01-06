@@ -39,7 +39,7 @@ interface UserData {
   winValues: { [opponentId: number]: number };
 }
 
-interface LaCounts {
+export interface LaCounts {
   [winnerId: number]: {
     [loserId: number]: number;
   };
@@ -165,6 +165,7 @@ export default function Home() {
     history?: GameState[];
     dealerId?: number;
     consecutiveWins?: number;
+    currentWinnerId?: number | null;
     laCounts?: LaCounts;
   }) => {
     if (isClient) {
@@ -173,9 +174,7 @@ export default function Home() {
       if (data.dealerId !== undefined) localStorage.setItem('mahjong-dealerId', JSON.stringify(data.dealerId));
       if (data.consecutiveWins !== undefined) localStorage.setItem('mahjong-consecutiveWins', JSON.stringify(data.consecutiveWins));
       if (data.laCounts !== undefined) localStorage.setItem('mahjong-laCounts', JSON.stringify(data.laCounts));
-      if (isClient) {
-        localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(currentWinnerId));
-      }
+      if (data.currentWinnerId !== undefined) localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(data.currentWinnerId));
     }
   };
 
@@ -470,12 +469,13 @@ export default function Home() {
     }
 
     const { newDealerId, newConsecutiveWins } = handleWin(mainUserId, dealerId, consecutiveWins);
+    
+    setUsers(finalUsers);
+    setLaCounts(newLaCounts);
     setCurrentWinnerId(mainUserId);
     setDealerId(newDealerId);
     setConsecutiveWins(newConsecutiveWins);
-    setLaCounts(newLaCounts);
-    setUsers(finalUsers);
-
+    
     const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
     
     saveGameData({
@@ -483,6 +483,7 @@ export default function Home() {
       history: newHistory,
       dealerId: newDealerId,
       consecutiveWins: newConsecutiveWins,
+      currentWinnerId: mainUserId,
       laCounts: newLaCounts,
     });
 
@@ -530,11 +531,9 @@ export default function Home() {
         history: newHistory,
         dealerId: newDealerId,
         consecutiveWins: newConsecutiveWins,
+        currentWinnerId: newCurrentWinnerId,
         laCounts: newLaCounts,
     });
-    if (isClient) {
-      localStorage.removeItem('mahjong-currentWinnerId');
-    }
   };
 
   const handleRestore = () => {
@@ -554,11 +553,9 @@ export default function Home() {
           history: newHistory,
           dealerId: lastState.dealerId,
           consecutiveWins: lastState.consecutiveWins,
+          currentWinnerId: lastState.currentWinnerId,
           laCounts: lastState.laCounts,
       });
-      if (isClient) {
-        localStorage.setItem('mahjong-currentWinnerId', JSON.stringify(lastState.currentWinnerId));
-      }
 
       toast({ description: "Last action restored." });
     } else {
@@ -788,7 +785,10 @@ export default function Home() {
           isOpen={isWinActionDialogOpen}
           onClose={() => setIsWinActionDialogOpen(false)}
           mainUser={currentUserForWinAction}
-          users={users.filter(u => u.id !== currentUserForWinAction.id)}
+          users={users}
+          currentWinnerId={currentWinnerId}
+          dealerId={dealerId}
+          consecutiveWins={consecutiveWins}
           onSave={handleSaveWinAction}
         />
        )}

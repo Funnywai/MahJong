@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
+import type { LaCounts } from '@/app/page';
+import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UserData {
   id: number;
   name: string;
+  winValues: { [opponentId: number]: number };
 }
 
 interface WinActionDialogProps {
@@ -23,10 +27,29 @@ interface WinActionDialogProps {
   onClose: () => void;
   mainUser: UserData;
   users: UserData[];
+  currentWinnerId: number | null;
+  dealerId: number;
+  consecutiveWins: number;
   onSave: (mainUserId: number, value: number, targetUserId?: number) => void;
 }
 
-export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: WinActionDialogProps) {
+interface ScorePreview {
+  base: number;
+  dealerBonus: number;
+  laBonus: number;
+  total: number;
+}
+
+export function WinActionDialog({ 
+  isOpen, 
+  onClose, 
+  mainUser, 
+  users, 
+  currentWinnerId,
+  dealerId,
+  consecutiveWins,
+  onSave 
+}: WinActionDialogProps) {
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
   const [isZimo, setIsZimo] = useState(false);
   const [value, setValue] = useState<string>('');
@@ -38,6 +61,91 @@ export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: Wi
       setValue('');
     }
   }, [isOpen]);
+
+  const opponentUsers = useMemo(() => users.filter(u => u.id !== mainUser.id), [users, mainUser]);
+
+  const scorePreview = useMemo<ScorePreview | null>(() => {
+    const parsedValue = parseInt(value, 10);
+    if (isNaN(parsedValue) || parsedValue <= 0 || (!targetUserId && !isZimo)) {
+      return null;
+    }
+
+    let base = parsedValue;
+    let dealerBonus = 0;
+    let laBonus = 0;
+
+    const dealerBonusValue = 2 * consecutiveWins - 1;
+    const isNewWinner = mainUser.id !== currentWinnerId && currentWinnerId !== null;
+    const previousWinner = users.find(u => u.id === currentWinnerId);
+
+    if (isZimo) {
+        let totalLaBonus = 0;
+        let totalDealerBonus = 0;
+
+        opponentUsers.forEach(opponent => {
+            let currentScoreForOpponent = parsedValue;
+            // Dealer Bonus
+            if (mainUser.id === dealerId) {
+                totalDealerBonus += dealerBonusValue;
+                currentScoreForOpponent += dealerBonusValue;
+            } else if (opponent.id === dealerId) {
+                totalDealerBonus += dealerBonusValue;
+                currentScoreForOpponent += dealerBonusValue;
+            }
+            
+            // La Bonus
+            if (previousWinner && previousWinner.id === mainUser.id) {
+                const previousScore = mainUser.winValues[opponent.id] || 0;
+                if (previousScore > 0) {
+                    const bonus = Math.round(previousScore * 0.5);
+                    totalLaBonus += bonus;
+                }
+            } else if (isNewWinner && previousWinner && opponent.id === previousWinner.id) {
+                 const previousScoreOnWinner = previousWinner.winValues[mainUser.id] || 0;
+                if (previousScoreOnWinner > 0) {
+                    totalLaBonus += Math.floor(previousScoreOnWinner / 2);
+                }
+            }
+        });
+
+        base = parsedValue * opponentUsers.length;
+        dealerBonus = totalDealerBonus;
+        laBonus = totalLaBonus;
+        
+    } else if (targetUserId) {
+        let currentScore = parsedValue;
+        const parsedTargetId = parseInt(targetUserId, 10);
+
+        // Dealer Bonus
+        if (mainUser.id === dealerId) {
+            dealerBonus = dealerBonusValue;
+            currentScore += dealerBonus;
+        } else if (parsedTargetId === dealerId) {
+            dealerBonus = dealerBonusValue;
+            currentScore += dealerBonus;
+        }
+
+        // La Bonus
+        if (previousWinner && previousWinner.id === mainUser.id) {
+            const previousScore = mainUser.winValues[parsedTargetId] || 0;
+            if (previousScore > 0) {
+                laBonus = Math.round(previousScore * 0.5);
+            }
+        } else if (isNewWinner && previousWinner && parsedTargetId === previousWinner.id) {
+             const previousScoreOnWinner = previousWinner.winValues[mainUser.id] || 0;
+             if (previousScoreOnWinner > 0) {
+                laBonus = Math.floor(previousScoreOnWinner / 2);
+             }
+        }
+    }
+    
+    return {
+        base,
+        dealerBonus,
+        laBonus,
+        total: base + dealerBonus + laBonus
+    };
+  }, [value, targetUserId, isZimo, mainUser, users, currentWinnerId, dealerId, consecutiveWins, opponentUsers]);
 
   const handleSave = () => {
     if (value && (targetUserId || isZimo)) {
@@ -83,7 +191,7 @@ export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: Wi
           <div className="space-y-2">
             <Label>Select Action</Label>
             <div className="grid grid-cols-4 gap-2">
-                {users.map(user => (
+                {opponentUsers.map(user => (
                     <Button
                         key={user.id}
                         variant={targetUserId === user.id.toString() ? 'default' : 'outline'}
@@ -130,6 +238,33 @@ export function WinActionDialog({ isOpen, onClose, mainUser, users, onSave }: Wi
               </Button>
             </div>
           </div>
+
+          {scorePreview && (
+            <Card className="bg-secondary/50">
+                <CardHeader className="p-4">
+                    <CardTitle className="text-lg">Score Preview</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 text-sm">
+                    <div className="flex justify-between">
+                        <span>Base Score (番):</span>
+                        <span>{scorePreview.base}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Dealer Bonus (莊):</span>
+                        <span>{scorePreview.dealerBonus}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span>Consecutive Bonus (拉):</span>
+                        <span>{scorePreview.laBonus}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-base mt-2 border-t pt-2">
+                        <span>Total Win:</span>
+                        <span>{scorePreview.total}</span>
+                    </div>
+                </CardContent>
+            </Card>
+          )}
+
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
