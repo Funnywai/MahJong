@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, DollarSign, Zap, ChevronDown } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, DollarSign, Zap, ChevronDown, BarChart3 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
 import { HistoryDialog } from '@/app/components/history-dialog';
@@ -30,6 +31,7 @@ import { SeatChangeDialog } from '@/app/components/seat-change-dialog';
 import { ResetScoresDialog } from '@/app/components/reset-scores-dialog';
 import { PayoutDialog } from '@/app/components/payout-dialog';
 import { SpecialActionDialog } from '@/app/components/special-action-dialog';
+import { ScoreAnalyticsDashboard } from '@/app/components/score-analytics-dashboard';
 import { cn } from '@/lib/utils';
 
 interface UserData {
@@ -53,7 +55,7 @@ interface Payouts {
   [opponentId: number]: number;
 }
 
-interface GameState {
+export interface GameState {
   users: UserData[];
   laCounts: LaCounts;
   currentWinnerId: number | null;
@@ -84,6 +86,7 @@ interface ScoresToReset {
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
+  const [currentView, setCurrentView] = useState<'game' | 'analytics'>('game');
 
   useEffect(() => {
     setIsClient(true);
@@ -738,64 +741,95 @@ export default function Home() {
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
-      <div className="w-full max-w-4xl">
-        <header className="mb-4 flex flex-col items-center gap-2">
-            <Collapsible className="w-full">
+      <div className="w-full max-w-7xl">
+        <Tabs value={currentView} onValueChange={(val) => setCurrentView(val as 'game' | 'analytics')} className="w-full">
+          <div className="mb-4 flex flex-col gap-4">
+            {/* Tab Navigation */}
+            <TabsList className="w-full grid w-full grid-cols-2">
+              <TabsTrigger value="game" className="font-bold">
+                <Users className="mr-2 h-4 w-4" />
+                Game Board
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="font-bold">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Action Buttons */}
+            <header className="flex flex-col items-center gap-2">
+              <Collapsible className="w-full">
                 <div className="flex gap-2 flex-wrap justify-center">
-                    <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
-                        <Pencil className="mr-2 h-4 w-4" /> 改名
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
-                        <Shuffle className="mr-2 h-4 w-4" /> 換位
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
-                        <HistoryIcon className="mr-2 h-4 w-4" /> 還原
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleReset}>
-                        <RefreshCw className="mr-2 h-4 w-4" /> 重置
-                    </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" /> 改名
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
+                    <Shuffle className="mr-2 h-4 w-4" /> 換位
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
+                    <HistoryIcon className="mr-2 h-4 w-4" /> 還原
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleReset}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> 重置
+                  </Button>
                 </div>
                 <CollapsibleContent className="w-full">
-                    <div className="flex gap-2 flex-wrap justify-center mt-2">
-                        <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0} >
-                            <List className="mr-2 h-4 w-4" /> 歷史記錄
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
-                            <DollarSign className="mr-2 h-4 w-4" /> 找數
-                        </Button>
-                        <Button variant={popOnNewWinner ? "default" : "outline"} size="sm" onClick={() => setPopOnNewWinner(p => !p)}>
-                            <Zap className="mr-2 h-4 w-4" /> 模式：籌碼
-                        </Button>
-                    </div>
+                  <div className="flex gap-2 flex-wrap justify-center mt-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
+                      <List className="mr-2 h-4 w-4" /> 歷史記錄
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
+                      <DollarSign className="mr-2 h-4 w-4" /> 找數
+                    </Button>
+                    <Button variant={popOnNewWinner ? "default" : "outline"} size="sm" onClick={() => setPopOnNewWinner(p => !p)}>
+                      <Zap className="mr-2 h-4 w-4" /> 模式：籌碼
+                    </Button>
+                  </div>
                 </CollapsibleContent>
                 <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="w-full">
-                        <ChevronDown className="h-4 w-4" />
-                        <span className="sr-only">Toggle more actions</span>
-                    </Button>
+                  <Button variant="ghost" size="sm" className="w-full">
+                    <ChevronDown className="h-4 w-4" />
+                    <span className="sr-only">Toggle more actions</span>
+                  </Button>
                 </CollapsibleTrigger>
-            </Collapsible>
-        </header>
+              </Collapsible>
+            </header>
+          </div>
 
-        <Card className="shadow-lg border-primary/10">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[120px] p-2">玩家</TableHead>
-                    <TableHead colSpan={users.length} className="text-center w-[120px] p-2">番數</TableHead>
-                  </TableRow>
-                  <TableRow>
-                    <TableHead className="p-2"></TableHead>
-                    {tableOpponentHeaders}
-                  </TableRow>
-                </TableHeader>
-                {memoizedTableBody}
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Game Board Tab */}
+          <TabsContent value="game" className="space-y-4">
+            <Card className="shadow-lg border-primary/10">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px] p-2">玩家</TableHead>
+                        <TableHead colSpan={users.length} className="text-center w-[120px] p-2">番數</TableHead>
+                      </TableRow>
+                      <TableRow>
+                        <TableHead className="p-2"></TableHead>
+                        {tableOpponentHeaders}
+                      </TableRow>
+                    </TableHeader>
+                    {memoizedTableBody}
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+            <ScoreAnalyticsDashboard
+              users={users}
+              history={history}
+              totalScores={totalScores}
+              laCounts={laCounts}
+              currentWinnerId={currentWinnerId}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <RenameDialog
