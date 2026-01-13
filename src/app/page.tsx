@@ -322,7 +322,18 @@ export default function Home() {
 
 
   const updateLaCounts = (winnerId: number, loserIds: number[], currentLaCounts: LaCounts, currentWinnerId: number | null) => {
-    const newLaCounts: LaCounts = winnerId === currentWinnerId ? { ...currentLaCounts } : {};
+    let newLaCounts: LaCounts;
+
+    if (winnerId === currentWinnerId) {
+      // Same winner continues: only keep their own la counts, reset other players' counts
+      newLaCounts = {};
+      if (currentLaCounts[winnerId]) {
+        newLaCounts[winnerId] = { ...currentLaCounts[winnerId] };
+      }
+    } else {
+      // New winner: reset all counts
+      newLaCounts = {};
+    }
 
     if (!newLaCounts[winnerId]) {
       newLaCounts[winnerId] = {};
