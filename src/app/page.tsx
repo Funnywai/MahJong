@@ -584,17 +584,45 @@ export default function Home() {
     if (!loser) return;
 
     const firstWinnerId = winnerIds[0];
-    const previousWinner = users.find(u => u.id === currentWinnerId);
 
-    const baseLaCounts = winnerIds.includes(currentWinnerId || -1) ? { ...laCounts } : {};
-    const newLaCounts: LaCounts = { ...baseLaCounts };
+    // Check if any of the current winners had previous winValues (for la bonus)
+    // Also check if there are OTHER users with scores that need to be reset
+    const usersWithActiveWinValues = users.filter(
+      u => !winnerIds.includes(u.id) && Object.values(u.winValues).some(score => score > 0)
+    );
+    const hasOtherUsersWithScores = usersWithActiveWinValues.length > 0;
 
-    // When a new winner appears, reset all winValues for consistency (like normal 食胡/自摸)
-    const resetWinValues = currentWinnerId !== null && firstWinnerId !== currentWinnerId;
+    // Show reset dialog for chip mode if there are other users with scores to reset
+    if (hasOtherUsersWithScores && popOnNewWinner) {
+      const winnersToReset = usersWithActiveWinValues
+        .filter(previousWinner => Object.values(previousWinner.winValues).some(score => score > 0))
+        .map(previousWinner => ({
+          previousWinnerName: previousWinner.name,
+          previousWinnerId: previousWinner.id,
+          scores: previousWinner.winValues,
+        }));
+
+      if (winnersToReset.length > 0) {
+        const winnerNames = winnerIds.map(id => users.find(u => u.id === id)?.name).join(' & ');
+        setScoresToReset({
+          currentWinnerName: winnerNames,
+          currentWinnerId: firstWinnerId,
+          winners: winnersToReset,
+        });
+        setIsResetScoresDialogOpen(true);
+      }
+    }
+
+    // When a new winner appears (someone not in the multi-hit), reset all winValues for consistency
+    const resetWinValues = hasOtherUsersWithScores;
     const finalUsers: UserData[] = users.map(user => ({
       ...user,
       winValues: resetWinValues ? {} : { ...user.winValues },
     }));
+
+    // Build la counts: keep counts if any winner was already winning, else reset
+    const baseLaCounts = winnerIds.some(id => id === currentWinnerId) ? { ...laCounts } : {};
+    const newLaCounts: LaCounts = { ...baseLaCounts };
 
     const scoreChanges: ScoreChange[] = [];
 
@@ -617,14 +645,14 @@ export default function Home() {
 
       let finalValue = currentScore;
 
-      if (previousWinner && previousWinner.id === winnerId) {
-        const previousScore = winner.winValues[loserUserId] || 0;
-        if (previousScore > 0) {
-          const bonus = Math.round(previousScore * 0.5);
-          finalValue = previousScore + bonus + currentScore;
-        }
-      } else if (winnerId !== currentWinnerId && previousWinner && loserUserId === previousWinner.id) {
-        const previousScoreOnWinner = previousWinner.winValues[winnerId] || 0;
+      // Check if THIS specific winner had a previous score against the loser (consecutive la bonus)
+      const previousScore = winner.winValues[loserUserId] || 0;
+      if (previousScore > 0) {
+        const bonus = Math.round(previousScore * 0.5);
+        finalValue = previousScore + bonus + currentScore;
+      } else if (hasOtherUsersWithScores) {
+        // Check if the loser had a previous score against THIS winner (reverse la/踢 bonus)
+        const previousScoreOnWinner = loser.winValues[winnerId] || 0;
         if (previousScoreOnWinner > 0) {
           finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
         }

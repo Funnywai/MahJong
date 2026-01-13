@@ -89,7 +89,12 @@ export function MultiHitDialog({
   const scoresPreviews = useMemo<ScorePreview[]>(() => {
     const previews: ScorePreview[] = [];
     const dealerBonusValue = 2 * consecutiveWins - 1;
-    const previousWinner = users.find(u => u.id === currentWinnerId);
+
+    // Check if there are other users (not in selectedWinners) with active scores
+    const usersWithActiveWinValues = users.filter(
+      u => !selectedWinners.includes(u.id) && u.id !== loser.id && Object.values(u.winValues).some(score => score > 0)
+    );
+    const hasOtherUsersWithScores = usersWithActiveWinValues.length > 0;
 
     selectedWinners.forEach(winnerId => {
       const winner = users.find(u => u.id === winnerId);
@@ -111,17 +116,16 @@ export function MultiHitDialog({
         base += dealerBonus;
       }
 
-      // La bonus logic (拉)
-      if (previousWinner && previousWinner.id === winnerId) {
-        const previousScore = winner.winValues[loser.id] || 0;
-        if (previousScore > 0) {
-          laBonus = Math.round(previousScore * 0.5);
-          base += laBonus;
-        }
-      } else if (winnerId !== currentWinnerId && currentWinnerId !== null && previousWinner && loser.id === previousWinner.id) {
-        const previousScoreOnLoser = previousWinner.winValues[winnerId] || 0;
-        if (previousScoreOnLoser > 0) {
-          laBonus = Math.floor(previousScoreOnLoser / 2);
+      // La bonus logic (拉): Check if THIS winner has a previous score against the loser
+      const previousScore = winner.winValues[loser.id] || 0;
+      if (previousScore > 0) {
+        laBonus = Math.round(previousScore * 0.5);
+        base += laBonus;
+      } else if (hasOtherUsersWithScores) {
+        // 踢 bonus: Check if the loser has a previous score against THIS winner
+        const previousScoreOnWinner = loser.winValues[winnerId] || 0;
+        if (previousScoreOnWinner > 0) {
+          laBonus = Math.floor(previousScoreOnWinner / 2);
           base += laBonus;
         }
       }
@@ -137,7 +141,7 @@ export function MultiHitDialog({
     });
 
     return previews;
-  }, [selectedWinners, loser, users, dealerId, consecutiveWins, currentWinnerId, winnerValues]);
+  }, [selectedWinners, loser, users, dealerId, consecutiveWins, winnerValues]);
 
   const handleSave = () => {
     if (selectedWinners.length < 2 || selectedWinners.length > 3) return;
