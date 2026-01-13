@@ -21,6 +21,16 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
 import { HistoryDialog } from '@/app/components/history-dialog';
@@ -118,6 +128,7 @@ export default function Home() {
   const [isPayoutDialogOpen, setIsPayoutDialogOpen] = useState(false);
   const [isSpecialActionDialogOpen, setIsSpecialActionDialogOpen] = useState(false);
   const [isMultiHitDialogOpen, setIsMultiHitDialogOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
 
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
@@ -716,7 +727,11 @@ export default function Home() {
     saveGameData({ users: newUsers });
   };
 
-  const handleReset = () => {
+  const handleResetClick = () => {
+    setIsResetConfirmOpen(true);
+  };
+
+  const handleResetConfirm = () => {
     const newUsers = users.map(user => ({...user, winValues: {}}));
     const newHistory: GameState[] = [];
     const newDealerId = users[0]?.id || 1;
@@ -739,6 +754,8 @@ export default function Home() {
         currentWinnerId: newCurrentWinnerId,
         laCounts: newLaCounts,
     });
+    
+    setIsResetConfirmOpen(false);
   };
 
   const handleRestore = () => {
@@ -943,7 +960,7 @@ export default function Home() {
                   <DropdownMenuItem onClick={handleRestore} disabled={history.length === 0}>
                     <HistoryIcon className="mr-2 h-4 w-4" /> 還原
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleReset}>
+                  <DropdownMenuItem onClick={handleResetClick}>
                     <RefreshCw className="mr-2 h-4 w-4" /> 重置
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
@@ -1082,6 +1099,20 @@ export default function Home() {
           users={users}
           totalScores={totalScores}
        />
+       <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認重置</AlertDialogTitle>
+            <AlertDialogDescription>
+              這將清除所有遊戲記錄、分數和歷史。此操作無法還原，確定要繼續嗎？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetConfirm}>確定重置</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
