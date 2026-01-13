@@ -159,42 +159,49 @@ export function ScoreAnalyticsDashboard({
   }, [winDistribution]);
 
   return (
-    <div className="w-full space-y-6">
-      {/* Leaderboard Cards - Enhanced for Competitive Players */}
+    <div className="w-full space-y-3 sm:space-y-6 pb-8">
+      {/* Leaderboard Cards - Mobile First */}
       <div>
-        <h2 className="text-2xl font-black mb-4 tracking-tight flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-yellow-500" />
-          LEADERBOARD
+        <h2 className="text-xl sm:text-2xl font-black mb-3 sm:mb-4 tracking-tight flex items-center gap-2">
+          <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500" />
+          <span className="text-lg sm:text-2xl">排名</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {rankedPlayers.map((player, index) => (
-            <Card key={player.id} className="border-l-4 relative overflow-hidden hover:shadow-lg transition-shadow" style={{ borderLeftColor: COLORS[index % COLORS.length] }}>
+            <Card 
+              key={player.id} 
+              className="border-l-4 relative overflow-hidden hover:shadow-lg transition-shadow"
+              style={{ borderLeftColor: COLORS[index % COLORS.length] }}
+            >
               <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-br from-foreground/5 to-transparent rounded-bl-lg"></div>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full font-black text-sm" style={{ backgroundColor: COLORS[index % COLORS.length], color: '#fff' }}>
+              <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div 
+                      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full font-black text-xs sm:text-sm flex-shrink-0" 
+                      style={{ backgroundColor: COLORS[index % COLORS.length], color: '#fff' }}
+                    >
                       {index + 1}
                     </div>
-                    <div>
-                      <CardTitle className="text-lg font-black">{player.name}</CardTitle>
+                    <div className="min-w-0">
+                      <CardTitle className="text-sm sm:text-lg font-black truncate">{player.name}</CardTitle>
                     </div>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-4 pt-1 sm:pt-3">
                 <div>
-                  <div className="text-3xl font-black text-primary">{player.score.toLocaleString()}</div>
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Score</div>
+                  <div className="text-2xl sm:text-3xl font-black text-primary">{player.score.toLocaleString()}</div>
+                  <div className="text-xs font-bold text-muted-foreground">總分</div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm border-t pt-3">
+                <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm border-t pt-2 sm:pt-3">
                   <div>
-                    <div className="font-black text-lg text-foreground">{player.stats.totalWins}</div>
-                    <div className="text-xs font-bold text-muted-foreground uppercase">Wins</div>
+                    <div className="font-black text-base sm:text-lg">{player.stats.totalWins}</div>
+                    <div className="text-xs font-bold text-muted-foreground">次贏</div>
                   </div>
                   <div>
-                    <div className="font-black text-lg text-foreground">{player.stats.winPercentage}%</div>
-                    <div className="text-xs font-bold text-muted-foreground uppercase">Win %</div>
+                    <div className="font-black text-base sm:text-lg">{player.stats.winPercentage}%</div>
+                    <div className="text-xs font-bold text-muted-foreground">勝率</div>
                   </div>
                 </div>
               </CardContent>
@@ -203,42 +210,41 @@ export function ScoreAnalyticsDashboard({
         </div>
       </div>
 
-      {/* Score Trend Chart */}
+      {/* Score Trend Chart - Responsive Height */}
       {scoreHistory.length > 0 && (
         <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-6 w-6 text-blue-500" />
-              <CardTitle className="text-xl font-black uppercase tracking-tight">Score Trajectory</CardTitle>
+          <CardHeader className="pb-2 sm:pb-4 p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 flex-shrink-0" />
+              <CardTitle className="text-base sm:text-xl font-black uppercase tracking-tight">分數走勢</CardTitle>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">Track cumulative performance across all rounds</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">全場比賽進度</p>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={scoreHistory} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+          <CardContent className="p-2 sm:p-4">
+            <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
+              <LineChart data={scoreHistory} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/.2)" />
                 <XAxis 
                   dataKey="round" 
-                  label={{ value: 'Round', position: 'insideBottomRight', offset: -5 }}
-                  style={{ fontSize: '12px', fontWeight: 'bold' }}
+                  style={{ fontSize: '11px', fontWeight: 'bold' }}
                 />
                 <YAxis 
-                  label={{ value: 'Score', angle: -90, position: 'insideLeft' }}
-                  style={{ fontSize: '12px', fontWeight: 'bold' }}
+                  style={{ fontSize: '11px', fontWeight: 'bold' }}
+                  width={35}
                 />
                 <Tooltip 
                   formatter={(value) => value?.toLocaleString()} 
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                  labelStyle={{ fontWeight: 'bold' }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: '12px' }}
+                  labelStyle={{ fontWeight: 'bold', fontSize: '12px' }}
                 />
-                <Legend wrapperStyle={{ fontWeight: 'bold' }} />
+                <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
                 {users.map((user, idx) => (
                   <Line
                     key={user.id}
                     type="monotone"
                     dataKey={user.name}
                     stroke={COLORS[idx % COLORS.length]}
-                    strokeWidth={3}
+                    strokeWidth={2}
                     dot={false}
                     connectNulls
                   />
@@ -249,27 +255,27 @@ export function ScoreAnalyticsDashboard({
         </Card>
       )}
 
-      {/* Win Distribution & Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Win Distribution & Stats - Stacked on Mobile */}
+      <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
         {/* Win Distribution Chart */}
         {pieData.length > 0 && (
           <Card className="border-0 shadow-lg">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <Trophy className="h-6 w-6 text-yellow-500" />
-                <CardTitle className="text-xl font-black uppercase tracking-tight">Win Distribution</CardTitle>
+            <CardHeader className="pb-2 sm:pb-4 p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 flex-shrink-0" />
+                <CardTitle className="text-base sm:text-xl font-black uppercase tracking-tight">勝場分佈</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
+            <CardContent className="p-2 sm:p-4">
+              <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 180 : 250}>
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) => `${name}: ${value}`}
-                    outerRadius={80}
+                    label={({ name, value }) => window.innerWidth < 640 ? `${value}` : `${name}: ${value}`}
+                    outerRadius={window.innerWidth < 640 ? 60 : 80}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -277,7 +283,7 @@ export function ScoreAnalyticsDashboard({
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `${value} wins`} />
+                  <Tooltip formatter={(value) => `${value} 次`} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -287,22 +293,25 @@ export function ScoreAnalyticsDashboard({
         {/* Average Score by Player */}
         {winDistribution.length > 0 && (
           <Card className="border-0 shadow-lg">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <Target className="h-6 w-6 text-green-500" />
-                <CardTitle className="text-xl font-black uppercase tracking-tight">Avg Score/Round</CardTitle>
+            <CardHeader className="pb-2 sm:pb-4 p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 flex-shrink-0" />
+                <CardTitle className="text-base sm:text-xl font-black uppercase tracking-tight">平均分數</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={users.map(u => ({
-                  name: u.name,
-                  avg: playerStats[u.id]?.avgScore || 0,
-                }))} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+            <CardContent className="p-2 sm:p-4">
+              <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 180 : 250}>
+                <BarChart 
+                  data={users.map(u => ({
+                    name: u.name,
+                    avg: playerStats[u.id]?.avgScore || 0,
+                  }))} 
+                  margin={{ top: 5, right: 10, left: -15, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/.2)" />
-                  <XAxis dataKey="name" style={{ fontSize: '12px', fontWeight: 'bold' }} />
-                  <YAxis style={{ fontSize: '12px', fontWeight: 'bold' }} />
-                  <Tooltip formatter={(value) => value?.toLocaleString()} labelStyle={{ fontWeight: 'bold' }} />
+                  <XAxis dataKey="name" style={{ fontSize: '11px', fontWeight: 'bold' }} />
+                  <YAxis style={{ fontSize: '11px', fontWeight: 'bold' }} width={35} />
+                  <Tooltip formatter={(value) => value?.toLocaleString()} labelStyle={{ fontWeight: 'bold', fontSize: '12px' }} />
                   <Bar dataKey="avg" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -311,40 +320,43 @@ export function ScoreAnalyticsDashboard({
         )}
       </div>
 
-      {/* Detailed Player Stats */}
+      {/* Detailed Player Stats - Mobile Optimized */}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <Zap className="h-6 w-6 text-purple-500" />
-            <CardTitle className="text-xl font-black uppercase tracking-tight">Performance Metrics</CardTitle>
+        <CardHeader className="pb-2 sm:pb-4 p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 flex-shrink-0" />
+            <CardTitle className="text-base sm:text-xl font-black uppercase tracking-tight">詳細統計</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardContent className="p-2 sm:p-4">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {rankedPlayers.map((player) => {
               const stats = player.stats;
               return (
-                <div key={player.id} className="border rounded-lg p-4 space-y-3 bg-gradient-to-br from-card to-muted/30 hover:shadow-md transition-shadow">
-                  <h3 className="font-black text-base uppercase">{player.name}</h3>
-                  <div className="space-y-2 text-sm divide-y">
+                <div 
+                  key={player.id} 
+                  className="border rounded-lg p-2 sm:p-4 space-y-2 sm:space-y-3 bg-gradient-to-br from-card to-muted/30 hover:shadow-md transition-shadow"
+                >
+                  <h3 className="font-black text-sm sm:text-base uppercase truncate">{player.name}</h3>
+                  <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm divide-y">
                     <div className="flex justify-between pt-1">
-                      <span className="text-muted-foreground font-bold">Total:</span>
+                      <span className="text-muted-foreground font-bold">總計:</span>
                       <span className="font-black text-primary">{stats.totalScore}</span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-muted-foreground font-bold">Avg:</span>
+                    <div className="flex justify-between pt-1 sm:pt-2">
+                      <span className="text-muted-foreground font-bold">平均:</span>
                       <span className="font-black">{stats.avgScore}</span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-muted-foreground font-bold">Best:</span>
+                    <div className="flex justify-between pt-1 sm:pt-2">
+                      <span className="text-muted-foreground font-bold">最高:</span>
                       <span className="font-black text-green-600">↑{stats.maxRound}</span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-muted-foreground font-bold">Worst:</span>
+                    <div className="flex justify-between pt-1 sm:pt-2">
+                      <span className="text-muted-foreground font-bold">最低:</span>
                       <span className="font-black text-red-600">↓{stats.minRound}</span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-muted-foreground font-bold">Rounds:</span>
+                    <div className="flex justify-between pt-1 sm:pt-2">
+                      <span className="text-muted-foreground font-bold">輪數:</span>
                       <span className="font-black">{stats.rounds.length}</span>
                     </div>
                   </div>
@@ -355,33 +367,36 @@ export function ScoreAnalyticsDashboard({
         </CardContent>
       </Card>
 
-      {/* Recent Games Timeline */}
+      {/* Recent Games Timeline - Mobile Optimized */}
       {history.length > 0 && (
         <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <History className="h-6 w-6 text-orange-500" />
-              <CardTitle className="text-xl font-black uppercase tracking-tight">Recent Games</CardTitle>
+          <CardHeader className="pb-2 sm:pb-4 p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <History className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500 flex-shrink-0" />
+              <CardTitle className="text-base sm:text-xl font-black uppercase tracking-tight">最近比賽</CardTitle>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">{history.length} round{history.length !== 1 ? 's' : ''} played</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">{history.length} 輪已完成</p>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+          <CardContent className="p-2 sm:p-4">
+            <div className="space-y-2 sm:space-y-3 max-h-96 overflow-y-auto">
               {history.slice().reverse().map((game, index) => (
-                <div key={index} className="flex items-start gap-4 p-3 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary hover:shadow-md transition-shadow">
-                  <div className="text-sm font-black text-muted-foreground min-w-fit bg-primary/10 px-3 py-1 rounded">
-                    Round {history.length - index}
+                <div 
+                  key={index} 
+                  className="flex items-start gap-2 sm:gap-4 p-2 sm:p-3 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary hover:shadow-md transition-shadow"
+                >
+                  <div className="text-xs font-black text-muted-foreground min-w-fit bg-primary/10 px-2 sm:px-3 py-1 rounded whitespace-nowrap">
+                    第 {history.length - index} 輪
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="font-black text-foreground">{game.action}</div>
-                    <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="flex-1 space-y-1 min-w-0">
+                    <div className="font-bold sm:font-black text-foreground text-sm truncate">{game.action}</div>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
                       {game.scoreChanges.map((change) => {
                         const user = users.find(u => u.id === change.userId);
                         const sign = change.change >= 0 ? '+' : '';
                         const color = change.change >= 0 ? 'text-green-600' : 'text-red-600';
                         return (
-                          <div key={change.userId} className={`${color} font-black`}>
-                            {user?.name}: {sign}{change.change}
+                          <div key={change.userId} className={`${color} font-bold`}>
+                            <span className="truncate">{user?.name}: {sign}{change.change}</span>
                           </div>
                         );
                       })}
