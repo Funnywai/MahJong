@@ -77,12 +77,16 @@ const generateInitialUsers = (): UserData[] => {
 
 const initialUsers = generateInitialUsers();
 
-interface ScoresToReset {
+interface ScoresToResetEntry {
   previousWinnerName: string;
   previousWinnerId: number;
+  scores: { [opponentId: number]: number };
+}
+
+interface ScoresToReset {
   currentWinnerName: string;
   currentWinnerId: number;
-  scores: { [opponentId: number]: number };
+  winners: ScoresToResetEntry[];
 }
 
 export default function Home() {
@@ -372,21 +376,23 @@ export default function Home() {
     const isNewWinner = hasOtherUsersWithScores;
     const currentWinner = users.find(u => u.id === mainUserId);
     if (isNewWinner && popOnNewWinner) {
-        // Show reset dialog for all users with active scores (not just the tracked currentWinnerId)
-        usersWithActiveWinValues.forEach(previousWinner => {
-            const hasScores = Object.values(previousWinner.winValues).some(score => score > 0);
+        // Aggregate all previous winners so the dialog can show every reset in chip mode
+        const winnersToReset = usersWithActiveWinValues
+          .filter(previousWinner => Object.values(previousWinner.winValues).some(score => score > 0))
+          .map(previousWinner => ({
+            previousWinnerName: previousWinner.name,
+            previousWinnerId: previousWinner.id,
+            scores: previousWinner.winValues,
+          }));
 
-            if (hasScores) {
-                setScoresToReset({
-                    previousWinnerName: previousWinner.name,
-                    previousWinnerId: previousWinner.id,
-                    currentWinnerName: currentWinner?.name || '',
-                    currentWinnerId: mainUserId,
-                    scores: previousWinner.winValues,
-                });
-                setIsResetScoresDialogOpen(true);
-            }
-        });
+        if (winnersToReset.length > 0) {
+          setScoresToReset({
+            currentWinnerName: currentWinner?.name || '',
+            currentWinnerId: mainUserId,
+            winners: winnersToReset,
+          });
+          setIsResetScoresDialogOpen(true);
+        }
     }
     
     let finalUsers: UserData[];

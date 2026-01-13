@@ -20,12 +20,16 @@ interface UserData {
     name: string;
 }
 
-interface ScoresToReset {
+interface ScoresToResetEntry {
   previousWinnerName: string;
   previousWinnerId: number;
+  scores: { [opponentId: number]: number };
+}
+
+interface ScoresToReset {
   currentWinnerName: string;
   currentWinnerId: number;
-  scores: { [opponentId: number]: number };
+  winners: ScoresToResetEntry[];
 }
 
 interface ResetScoresDialogProps {
@@ -42,7 +46,7 @@ export function ResetScoresDialog({ isOpen, onClose, scoresToReset, users }: Res
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{scoresToReset.previousWinnerName} 收</DialogTitle>
+          <DialogTitle>{scoresToReset.currentWinnerName} 開新莊，清除籌碼</DialogTitle>
         </DialogHeader>
         <div className="py-4">
             <Table>
@@ -55,14 +59,16 @@ export function ResetScoresDialog({ isOpen, onClose, scoresToReset, users }: Res
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow>
-                        <TableCell className="font-semibold">{scoresToReset.previousWinnerName}</TableCell>
-                        {users.map(user => (
-                            <TableCell key={user.id} className="text-center font-semibold text-destructive">
-                                {scoresToReset.previousWinnerId === user.id ? '-' : ((scoresToReset.scores[user.id]) || 0).toLocaleString()}
-                            </TableCell>
-                        ))}
-                    </TableRow>
+              {scoresToReset.winners.map(entry => (
+                <TableRow key={entry.previousWinnerId}>
+                <TableCell className="font-semibold">{entry.previousWinnerName}</TableCell>
+                {users.map(user => (
+                  <TableCell key={user.id} className="text-center font-semibold text-destructive">
+                    {entry.previousWinnerId === user.id ? '-' : ((entry.scores[user.id]) || 0).toLocaleString()}
+                  </TableCell>
+                ))}
+                </TableRow>
+              ))}
                 </TableBody>
             </Table>
         </div>
