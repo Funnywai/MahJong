@@ -543,7 +543,9 @@ export default function Home() {
     executeWinAction(mainUserId, value, targetUserId);
   };
 
-  const handleExecuteMultiHitAction = (loserUserId: number, winnerIds: number[], value: number) => {
+  const handleExecuteMultiHitAction = (loserUserId: number, winnerIds: number[], winnerValues: Record<number, number>) => {
+    if (winnerIds.length < 2 || winnerIds.length > 3) return;
+
     // Capture the state BEFORE any changes for the history log.
     const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
       users: JSON.parse(JSON.stringify(users)),
@@ -554,78 +556,72 @@ export default function Home() {
     };
 
     const loser = users.find(u => u.id === loserUserId);
-    if (!loser || winnerIds.length < 2 || winnerIds.length > 3) return;
+    if (!loser) return;
 
-    let actionDescription = `一炮多響: ${loser.name} 被 ${winnerIds.map(id => users.find(u => u.id === id)?.name).join(', ')} 食胡 ${value}番`;
-
-    const scoreChanges: ScoreChange[] = [];
-    let newLaCounts = laCounts;
-    let finalUsers = JSON.parse(JSON.stringify(users));
-    
-    const dealerBonusValue = 2 * consecutiveWins - 1;
+    const firstWinnerId = winnerIds[0];
     const previousWinner = users.find(u => u.id === currentWinnerId);
 
-    // Process each winner
+    const baseLaCounts = winnerIds.includes(currentWinnerId || -1) ? { ...laCounts } : {};
+    const newLaCounts: LaCounts = { ...baseLaCounts };
+
+    // When a new winner appears, reset all winValues for consistency (like normal 食胡/自摸)
+    const resetWinValues = currentWinnerId !== null && firstWinnerId !== currentWinnerId;
+    const finalUsers: UserData[] = users.map(user => ({
+      ...user,
+      winValues: resetWinValues ? {} : { ...user.winValues },
+    }));
+
+    const scoreChanges: ScoreChange[] = [];
+
     winnerIds.forEach(winnerId => {
       const winner = users.find(u => u.id === winnerId);
-      if (!winner) return;
+      const finalWinner = finalUsers.find(u => u.id === winnerId);
+      if (!winner || !finalWinner) return;
 
-      let currentScore = value;
+      const baseValue = winnerValues[winnerId];
+      if (!baseValue || baseValue <= 0) return;
 
-      // Dealer bonus logic
+      let currentScore = baseValue;
+      const dealerBonusValue = 2 * consecutiveWins - 1;
+
       if (winnerId === dealerId) {
         currentScore += dealerBonusValue;
       } else if (loserUserId === dealerId) {
         currentScore += dealerBonusValue;
       }
 
-      // La bonus logic (拉)
-      let laBonus = 0;
+      let finalValue = currentScore;
+
       if (previousWinner && previousWinner.id === winnerId) {
         const previousScore = winner.winValues[loserUserId] || 0;
         if (previousScore > 0) {
-          laBonus = Math.round(previousScore * 0.5);
-          currentScore += laBonus;
+          const bonus = Math.round(previousScore * 0.5);
+          finalValue = previousScore + bonus + currentScore;
         }
-      } else if (winnerId !== currentWinnerId && currentWinnerId !== null && previousWinner && loserUserId === previousWinner.id) {
-        const previousScoreOnLoser = previousWinner.winValues[winnerId] || 0;
-        if (previousScoreOnLoser > 0) {
-          laBonus = Math.floor(previousScoreOnLoser / 2);
-          currentScore += laBonus;
+      } else if (winnerId !== currentWinnerId && previousWinner && loserUserId === previousWinner.id) {
+        const previousScoreOnWinner = previousWinner.winValues[winnerId] || 0;
+        if (previousScoreOnWinner > 0) {
+          finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
         }
       }
 
-      // Update winner's win values
-      const finalUser = finalUsers.find((u: UserData) => u.id === winnerId);
-      if (finalUser) {
-        const previousValue = finalUser.winValues[loserUserId] || 0;
-        finalUser.winValues[loserUserId] = previousValue + currentScore;
-        
-        // Score change tracking
-        scoreChanges.push({ userId: winnerId, change: currentScore });
-      }
+      const originalWinner = users.find(u => u.id === winnerId);
+      const previousValue = originalWinner?.winValues[loserUserId] || 0;
+      finalWinner.winValues[loserUserId] = finalValue;
 
-      // Update la counts
-      newLaCounts = updateLaCounts(winnerId, [loserUserId], newLaCounts, currentWinnerId);
+      scoreChanges.push({ userId: winnerId, change: finalValue - previousValue });
+
+      newLaCounts[winnerId] = newLaCounts[winnerId] ? { ...newLaCounts[winnerId] } : {};
+      newLaCounts[winnerId][loserUserId] = (newLaCounts[winnerId][loserUserId] || 0) + 1;
     });
 
-    // Update loser's win values (they're negative from all winners' perspective)
-    const loserUser = finalUsers.find((u: UserData) => u.id === loserUserId);
-    if (loserUser) {
-      scoreChanges.forEach(change => {
-        if (change.userId !== loserUserId) {
-          loserUser.winValues[change.userId] = 0;
-        }
-      });
-    }
-
-    // Calculate total change for loser
+    // Loser's total negative change
     const totalLoserChange = scoreChanges.reduce((sum, change) => sum + change.change, 0);
     scoreChanges.push({ userId: loserUserId, change: -totalLoserChange });
 
-    // Update dealer logic - for multi-hit, the first winner becomes the new current winner
-    const firstWinnerId = winnerIds[0];
     const { newDealerId, newConsecutiveWins } = handleWin(firstWinnerId, dealerId, consecutiveWins);
+
+    const actionDescription = `一炮多響: ${loser.name} 被 ${winnerIds.map(id => users.find(u => u.id === id)?.name).join(', ')} 食胡`;
 
     setUsers(finalUsers);
     setLaCounts(newLaCounts);
@@ -794,17 +790,17 @@ export default function Home() {
                       </button>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Users className="h-4 w-4 text-primary"/>
                     {user.name}
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenMultiHitDialog(user)}>
+                      一炮多響
+                    </Button>
                   </div>
                 </div>
                 <div className="flex items-stretch gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
                      食胡
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenMultiHitDialog(user)}>
-                     一炮多響
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleOpenSpecialActionDialog(user)}>
                      特別賞罰
