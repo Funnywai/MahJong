@@ -26,7 +26,7 @@ interface Payouts {
 interface SpecialActionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  mainUser: UserData;
+  mainUser: UserData | null;
   users: UserData[];
   onSave: (mainUserId: number, action: 'collect' | 'pay', amount: number) => void;
   onSaveZhaHu: (mainUserId: number, payouts: Payouts) => void;
@@ -36,35 +36,38 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
   const [amount, setAmount] = useState('5');
   const [isZhaHuMode, setIsZhaHuMode] = useState(false);
   const [payouts, setPayouts] = useState<Payouts>({});
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(mainUser?.id ?? null);
 
   useEffect(() => {
     if (isOpen) {
       setIsZhaHuMode(false);
       setAmount('5');
       setPayouts({});
+      setSelectedUserId(mainUser?.id ?? users[0]?.id ?? null);
     }
-  }, [isOpen]);
+  }, [isOpen, mainUser, users]);
 
-  if (!mainUser) return null;
-
-  const opponents = users.filter(u => u.id !== mainUser.id);
+  const activeUser = selectedUserId ? users.find(u => u.id === selectedUserId) : null;
+  const opponents = activeUser ? users.filter(u => u.id !== activeUser.id) : [];
 
   const handleSave = (action: 'collect' | 'pay') => {
+    if (!activeUser) return;
     const parsedAmount = parseInt(amount, 10);
     if (!isNaN(parsedAmount) && parsedAmount > 0) {
-      onSave(mainUser.id, action, parsedAmount);
+      onSave(activeUser.id, action, parsedAmount);
       onClose();
     }
   };
 
   const handleZhaHuSave = () => {
+    if (!activeUser) return;
     const allPayoutsValid = opponents.every(opp => {
       const value = payouts[opp.id];
       return value !== undefined && value >= 0;
     });
 
     if (allPayoutsValid) {
-      onSaveZhaHu(mainUser.id, payouts);
+      onSaveZhaHu(activeUser.id, payouts);
       onClose();
     } else {
       // Maybe show a toast or error message
@@ -102,6 +105,21 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
           <DialogTitle>特別賞罰</DialogTitle>
         </DialogHeader>
 
+        <div className="space-y-3">
+          <Label>玩家</Label>
+          <div className="grid grid-cols-4 gap-2">
+            {users.map(user => (
+              <Button
+                key={user.id}
+                variant={selectedUserId === user.id ? 'default' : 'outline'}
+                onClick={() => setSelectedUserId(user.id)}
+              >
+                {user.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         {isZhaHuMode ? (
             <div className="space-y-4">
                 <div className="space-y-3">
@@ -126,7 +144,7 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
                     <Button type="button" variant="outline" onClick={() => setIsZhaHuMode(false)}>
                         返回
                     </Button>
-                    <Button type="submit" onClick={handleZhaHuSave}>
+                    <Button type="submit" onClick={handleZhaHuSave} disabled={!activeUser}>
                         確定
                     </Button>
                 </DialogFooter>
@@ -162,13 +180,13 @@ export function SpecialActionDialog({ isOpen, onClose, mainUser, users, onSave, 
                     </div>
                 </div>
                 <div className="flex justify-center gap-4">
-                    <Button size="lg" onClick={() => handleSave('collect')}>
+                  <Button size="lg" onClick={() => handleSave('collect')} disabled={!activeUser}>
                         收
                     </Button>
-                    <Button size="lg" variant="destructive" onClick={() => handleSave('pay')}>
+                  <Button size="lg" variant="destructive" onClick={() => handleSave('pay')} disabled={!activeUser}>
                         賠
                     </Button>
-                    <Button size="lg" variant="secondary" onClick={() => setIsZhaHuMode(true)}>
+                  <Button size="lg" variant="secondary" onClick={() => setIsZhaHuMode(true)} disabled={!activeUser}>
                         炸胡
                     </Button>
                 </div>

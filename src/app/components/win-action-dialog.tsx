@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
-import type { LaCounts } from '@/app/page';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface UserData {
   id: number;
@@ -31,6 +30,7 @@ interface WinActionDialogProps {
   dealerId: number;
   consecutiveWins: number;
   onSave: (mainUserId: number, value: number, targetUserId?: number) => void;
+  onLaunchMultiHit: (loserId?: number) => void;
 }
 
 interface ScorePreview {
@@ -48,7 +48,8 @@ export function WinActionDialog({
   currentWinnerId,
   dealerId,
   consecutiveWins,
-  onSave 
+  onSave,
+  onLaunchMultiHit,
 }: WinActionDialogProps) {
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
   const [isZimo, setIsZimo] = useState(false);
@@ -240,6 +241,28 @@ export function WinActionDialog({
               </Button>
             </div>
           </div>
+
+          <Card className="bg-secondary/30">
+            <CardContent className="p-3 flex items-center justify-between gap-3">
+              <div className="space-y-1 text-left">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Badge variant="secondary" className="uppercase">Multi</Badge>
+                  一炮多響
+                </p>
+                <p className="text-xs text-muted-foreground">從食胡流程直接開啟，選好輸家後可改為多人同時食胡。</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  onLaunchMultiHit(targetUserId ? parseInt(targetUserId, 10) : undefined);
+                  onClose();
+                }}
+              >
+                開啟
+              </Button>
+            </CardContent>
+          </Card>
 
           {scorePreview && (
             <Card className="bg-secondary/50">

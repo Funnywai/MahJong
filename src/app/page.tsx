@@ -11,18 +11,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, DollarSign, Zap, ChevronDown, BarChart3 } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, DollarSign, Zap, BarChart3, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RenameDialog } from '@/app/components/rename-dialog';
 import { WinActionDialog } from '@/app/components/win-action-dialog';
@@ -34,6 +31,7 @@ import { SpecialActionDialog } from '@/app/components/special-action-dialog';
 import { MultiHitDialog } from '@/app/components/multi-hit-dialog';
 import { ScoreAnalyticsDashboard } from '@/app/components/score-analytics-dashboard';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 interface UserData {
   id: number;
@@ -123,7 +121,8 @@ export default function Home() {
 
 
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
-  const [currentUserForMultiHit, setCurrentUserForMultiHit] = useState<UserData | null>(null);
+  const [currentUserForSpecialAction, setCurrentUserForSpecialAction] = useState<UserData | null>(null);
+  const [multiHitInitialLoserId, setMultiHitInitialLoserId] = useState<number | null>(null);
 
   const [dealerId, setDealerId] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -225,14 +224,19 @@ export default function Home() {
     setIsWinActionDialogOpen(true);
   };
   
-  const handleOpenSpecialActionDialog = (user: UserData) => {
-    setCurrentUserForWinAction(user);
+  const handleOpenSpecialActionDialog = (user?: UserData) => {
+    setCurrentUserForSpecialAction(user ?? users[0] ?? null);
     setIsSpecialActionDialogOpen(true);
   };
 
-  const handleOpenMultiHitDialog = (user: UserData) => {
-    setCurrentUserForMultiHit(user);
+  const handleLaunchMultiHit = (loserId?: number) => {
+    setMultiHitInitialLoserId(loserId ?? null);
     setIsMultiHitDialogOpen(true);
+  };
+
+  const handleLaunchMultiHitFromWinFlow = (loserId?: number) => {
+    handleLaunchMultiHit(loserId);
+    setIsWinActionDialogOpen(false);
   };
 
   const handleExecuteZhaHuAction = (mainUserId: number, payouts: Payouts) => {
@@ -846,17 +850,11 @@ export default function Home() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Users className="h-4 w-4 text-primary"/>
                     {user.name}
-                    <Button variant="secondary" size="sm" onClick={() => handleOpenMultiHitDialog(user)}>
-                      一炮多響
-                    </Button>
                   </div>
                 </div>
                 <div className="flex items-stretch gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
                      食胡
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenSpecialActionDialog(user)}>
-                     特別賞罰
                   </Button>
                 </div>
                 <div className="font-bold text-lg mt-1">
@@ -920,43 +918,69 @@ export default function Home() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Action Buttons */}
-            <header className="flex flex-col items-center gap-2">
-              <Collapsible className="w-full">
-                <div className="flex gap-2 flex-wrap justify-center">
-                  <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
+            <header className="flex items-center justify-between gap-2 rounded-lg border bg-card/60 p-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">常用動作</p>
+                <p className="text-xs text-muted-foreground">食胡彈窗內可直接切到一炮多響，頭部 More 收起次要功能。</p>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <MoreHorizontal className="h-4 w-4" />
+                    More
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>玩家</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setIsRenameDialogOpen(true)}>
                     <Pencil className="mr-2 h-4 w-4" /> 改名
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsSeatChangeDialogOpen(true)}>
                     <Shuffle className="mr-2 h-4 w-4" /> 換位
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>紀錄</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={handleRestore} disabled={history.length === 0}>
                     <HistoryIcon className="mr-2 h-4 w-4" /> 還原
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleReset}>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleReset}>
                     <RefreshCw className="mr-2 h-4 w-4" /> 重置
-                  </Button>
-                </div>
-                <CollapsibleContent className="w-full">
-                  <div className="flex gap-2 flex-wrap justify-center mt-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
-                      <List className="mr-2 h-4 w-4" /> 歷史記錄
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
-                      <DollarSign className="mr-2 h-4 w-4" /> 找數
-                    </Button>
-                    <Button variant={popOnNewWinner ? "default" : "outline"} size="sm" onClick={() => setPopOnNewWinner(p => !p)}>
-                      <Zap className="mr-2 h-4 w-4" /> 模式：籌碼
-                    </Button>
-                  </div>
-                </CollapsibleContent>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full">
-                    <ChevronDown className="h-4 w-4" />
-                    <span className="sr-only">Toggle more actions</span>
-                  </Button>
-                </CollapsibleTrigger>
-              </Collapsible>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
+                    <List className="mr-2 h-4 w-4" /> 歷史記錄
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
+                    <DollarSign className="mr-2 h-4 w-4" /> 找數
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>進階</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleOpenSpecialActionDialog()}>
+                    <Zap className="mr-2 h-4 w-4" /> 特別賞罰
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>設定</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setPopOnNewWinner(p => !p);
+                    }}
+                  >
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <Zap className="h-4 w-4" /> 籌碼模式
+                      </span>
+                      <Switch
+                        checked={popOnNewWinner}
+                        onCheckedChange={() => setPopOnNewWinner(p => !p)}
+                        aria-label="切換籌碼模式"
+                      />
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </header>
           </div>
 
@@ -1018,30 +1042,26 @@ export default function Home() {
           dealerId={dealerId}
           consecutiveWins={consecutiveWins}
           onSave={handleSaveWinAction}
+          onLaunchMultiHit={handleLaunchMultiHitFromWinFlow}
         />
        )}
-      {currentUserForWinAction && (
-        <SpecialActionDialog
-          isOpen={isSpecialActionDialogOpen}
-          onClose={() => setIsSpecialActionDialogOpen(false)}
-          mainUser={currentUserForWinAction}
-          users={users}
-          onSave={handleExecuteSpecialAction}
-          onSaveZhaHu={handleExecuteZhaHuAction}
-        />
-       )}
-       {currentUserForMultiHit && (
-        <MultiHitDialog
-          isOpen={isMultiHitDialogOpen}
-          onClose={() => setIsMultiHitDialogOpen(false)}
-          loser={currentUserForMultiHit}
-          users={users}
-          dealerId={dealerId}
-          consecutiveWins={consecutiveWins}
-          currentWinnerId={currentWinnerId}
-          onSave={handleExecuteMultiHitAction}
-        />
-       )}
+      <SpecialActionDialog
+        isOpen={isSpecialActionDialogOpen}
+        onClose={() => setIsSpecialActionDialogOpen(false)}
+        mainUser={currentUserForSpecialAction}
+        users={users}
+        onSave={handleExecuteSpecialAction}
+        onSaveZhaHu={handleExecuteZhaHuAction}
+      />
+      <MultiHitDialog
+        isOpen={isMultiHitDialogOpen}
+        onClose={() => setIsMultiHitDialogOpen(false)}
+        initialLoserId={multiHitInitialLoserId}
+        users={users}
+        dealerId={dealerId}
+        consecutiveWins={consecutiveWins}
+        onSave={handleExecuteMultiHitAction}
+      />
        <HistoryDialog
         isOpen={isHistoryDialogOpen}
         onClose={() => setIsHistoryDialogOpen(false)}

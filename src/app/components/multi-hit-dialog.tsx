@@ -24,11 +24,10 @@ interface UserData {
 interface MultiHitDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  loser: UserData;
+  initialLoserId?: number | null;
   users: UserData[];
   dealerId: number;
   consecutiveWins: number;
-  currentWinnerId: number | null;
   onSave: (loserUserId: number, winners: number[], values: Record<number, number>) => void;
 }
 
@@ -44,24 +43,35 @@ interface ScorePreview {
 export function MultiHitDialog({
   isOpen,
   onClose,
-  loser,
+  initialLoserId,
   users,
   dealerId,
   consecutiveWins,
-  currentWinnerId,
   onSave,
 }: MultiHitDialogProps) {
   const [selectedWinners, setSelectedWinners] = useState<number[]>([]);
+  const [selectedLoserId, setSelectedLoserId] = useState<number | null>(null);
   const [winnerValues, setWinnerValues] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (isOpen) {
       setSelectedWinners([]);
       setWinnerValues({});
+      setSelectedLoserId(initialLoserId ?? null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialLoserId]);
 
-  const opposingUsers = useMemo(() => users.filter(u => u.id !== loser.id), [users, loser]);
+  useEffect(() => {
+    setSelectedWinners([]);
+    setWinnerValues({});
+  }, [selectedLoserId]);
+
+  const activeLoser = useMemo(() => selectedLoserId ? users.find(u => u.id === selectedLoserId) || null : null, [selectedLoserId, users]);
+
+  const opposingUsers = useMemo(
+    () => (selectedLoserId ? users.filter(u => u.id !== selectedLoserId) : []),
+    [users, selectedLoserId]
+  );
 
   const toggleWinner = (userId: number) => {
     setSelectedWinners(prev => {
@@ -90,9 +100,11 @@ export function MultiHitDialog({
     const previews: ScorePreview[] = [];
     const dealerBonusValue = 2 * consecutiveWins - 1;
 
+    if (!activeLoser) return previews;
+
     // Check if there are other users (not in selectedWinners) with active scores
     const usersWithActiveWinValues = users.filter(
-      u => !selectedWinners.includes(u.id) && u.id !== loser.id && Object.values(u.winValues).some(score => score > 0)
+      u => !selectedWinners.includes(u.id) && u.id !== activeLoser.id && Object.values(u.winValues).some(score => score > 0)
     );
     const hasOtherUsersWithScores = usersWithActiveWinValues.length > 0;
 
@@ -111,19 +123,19 @@ export function MultiHitDialog({
       if (winnerId === dealerId) {
         dealerBonus = dealerBonusValue;
         base += dealerBonus;
-      } else if (loser.id === dealerId) {
+      } else if (activeLoser.id === dealerId) {
         dealerBonus = dealerBonusValue;
         base += dealerBonus;
       }
 
       // La bonus logic (拉): Check if THIS winner has a previous score against the loser
-      const previousScore = winner.winValues[loser.id] || 0;
+      const previousScore = winner.winValues[activeLoser.id] || 0;
       if (previousScore > 0) {
         laBonus = Math.round(previousScore * 0.5);
         base += laBonus;
       } else if (hasOtherUsersWithScores) {
         // 踢 bonus: Check if the loser has a previous score against THIS winner
-        const previousScoreOnWinner = loser.winValues[winnerId] || 0;
+        const previousScoreOnWinner = activeLoser.winValues[winnerId] || 0;
         if (previousScoreOnWinner > 0) {
           laBonus = Math.floor(previousScoreOnWinner / 2);
           base += laBonus;
@@ -141,10 +153,10 @@ export function MultiHitDialog({
     });
 
     return previews;
-  }, [selectedWinners, loser, users, dealerId, consecutiveWins, winnerValues]);
+  }, [selectedWinners, activeLoser, users, dealerId, consecutiveWins, winnerValues]);
 
   const handleSave = () => {
-    if (selectedWinners.length < 2 || selectedWinners.length > 3) return;
+    if (selectedWinners.length < 2 || selectedWinners.length > 3 || !activeLoser) return;
 
     const parsedValues: Record<number, number> = {};
     let allValid = true;
@@ -160,11 +172,9 @@ export function MultiHitDialog({
 
     if (!allValid) return;
 
-    onSave(loser.id, selectedWinners, parsedValues);
+    onSave(activeLoser.id, selectedWinners, parsedValues);
     onClose();
   };
-
-  if (!loser) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -172,16 +182,22 @@ export function MultiHitDialog({
         <DialogHeader>
           <DialogTitle>一炮多響</DialogTitle>
           <DialogDescription>
-            選擇 {loser.name} 被同時食胡的玩家 (2-3人)
+            先選輸家，再點選2-3位贏家並填入番數。
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>輸家: {loser.name}</Label>
-            <div className="bg-secondary/50 p-2 rounded">
-              <p className="text-sm text-center font-semibold text-secondary-foreground">
-                {loser.name} 被同時食胡
-              </p>
+            <Label>輸家</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {users.map(user => (
+                <Button
+                  key={user.id}
+                  variant={selectedLoserId === user.id ? 'default' : 'outline'}
+                  onClick={() => setSelectedLoserId(user.id)}
+                >
+                  {user.name}
+                </Button>
+              ))}
             </div>
           </div>
 
@@ -197,6 +213,8 @@ export function MultiHitDialog({
                   onClick={() => toggleWinner(user.id)}
                   disabled={!selectedWinners.includes(user.id) && selectedWinners.length >= 3}
                   className="relative"
+                  aria-pressed={selectedWinners.includes(user.id)}
+                  aria-label={`選擇贏家 ${user.name}`}
                 >
                   {user.name}
                   {selectedWinners.includes(user.id) && (
@@ -272,7 +290,7 @@ export function MultiHitDialog({
           <Button
             type="submit"
             onClick={handleSave}
-            disabled={selectedWinners.length < 2 || selectedWinners.length > 3}
+            disabled={selectedWinners.length < 2 || selectedWinners.length > 3 || !activeLoser}
           >
             確定
           </Button>
