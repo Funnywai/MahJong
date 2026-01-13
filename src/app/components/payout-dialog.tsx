@@ -37,6 +37,7 @@ interface PayoutDialogProps {
 export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDialogProps) {
   const [divisor, setDivisor] = useState<string>('1');
   const [manualAdjustments, setManualAdjustments] = useState<Record<number, string>>({});
+  const [adjustmentSigns, setAdjustmentSigns] = useState<Record<number, '+' | '-'>>({});
 
   const handleDivisorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDivisor(e.target.value);
@@ -44,6 +45,13 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
 
   const handleAdjustmentChange = (userId: number, value: string) => {
     setManualAdjustments(prev => ({ ...prev, [userId]: value }));
+  };
+
+  const toggleAdjustmentSign = (userId: number) => {
+    setAdjustmentSigns(prev => ({
+      ...prev,
+      [userId]: prev[userId] === '-' ? '+' : '-',
+    }));
   };
 
   const parsedDivisor = parseFloat(divisor);
@@ -84,8 +92,10 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
                 const payout = isValidDivisor ? (total / parsedDivisor) : 0;
                 const adjustmentRaw = manualAdjustments[user.id] ?? '';
                 const adjustment = parseFloat(adjustmentRaw);
+                const sign = adjustmentSigns[user.id] ?? '+';
                 const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
-                const finalPayout = payout + safeAdjustment;
+                const signedAdjustment = sign === '-' ? -safeAdjustment : safeAdjustment;
+                const finalPayout = payout + signedAdjustment;
                 const isPositive = finalPayout > 0;
                 const isNegative = finalPayout < 0;
 
@@ -94,15 +104,26 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell className="text-right">{total.toLocaleString()}</TableCell>
                     <TableCell className="text-right">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={adjustmentRaw}
-                        onChange={(e) => handleAdjustmentChange(user.id, e.target.value)}
-                        placeholder="0 或 -10"
-                        className="h-9 text-right"
-                        aria-label="其他金額"
-                      />
+                      <div className="flex items-center gap-2 justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={sign === '-' ? 'secondary' : 'outline'}
+                          className="h-9 px-3"
+                          onClick={() => toggleAdjustmentSign(user.id)}
+                        >
+                          {sign === '-' ? '−' : '+'}
+                        </Button>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          value={adjustmentRaw}
+                          onChange={(e) => handleAdjustmentChange(user.id, e.target.value)}
+                          placeholder="金額"
+                          className="h-9 text-right w-24"
+                          aria-label="其他金額"
+                        />
+                      </div>
                     </TableCell>
                     <TableCell
                       className={cn(

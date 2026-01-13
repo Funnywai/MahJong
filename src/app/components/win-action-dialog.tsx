@@ -249,7 +249,6 @@ export function WinActionDialog({
                   <Badge variant="secondary" className="uppercase">Multi</Badge>
                   一炮多響
                 </p>
-                <p className="text-xs text-muted-foreground">從食胡流程直接開啟，選好輸家後可改為多人同時食胡。</p>
               </div>
               <Button
                 variant="secondary"
