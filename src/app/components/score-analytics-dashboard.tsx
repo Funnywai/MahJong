@@ -344,10 +344,6 @@ export function ScoreAnalyticsDashboard({
                       <span className="font-black text-red-600">↓{stats.minRound}</span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="text-muted-foreground font-bold">Consistency:</span>
-                      <span className="font-black text-blue-600">{stats.consistency}</span>
-                    </div>
-                    <div className="flex justify-between pt-2">
                       <span className="text-muted-foreground font-bold">Rounds:</span>
                       <span className="font-black">{stats.rounds.length}</span>
                     </div>
