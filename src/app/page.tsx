@@ -2,8 +2,22 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, DollarSign, Zap, ChevronDown, BarChart3 } from 'lucide-react';
+import { RefreshCw, Users, Pencil, History as HistoryIcon, List, Shuffle, Redo2, DollarSign, Zap, ChevronDown, BarChart3 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,7 +34,6 @@ import { SpecialActionDialog } from '@/app/components/special-action-dialog';
 import { MultiHitDialog } from '@/app/components/multi-hit-dialog';
 import { ScoreAnalyticsDashboard } from '@/app/components/score-analytics-dashboard';
 import { cn } from '@/lib/utils';
-import { PlayerCard } from '@/app/components/player-card';
 
 interface UserData {
   id: number;
@@ -811,113 +824,163 @@ export default function Home() {
     return scores;
   }, [history, users]);
 
+  const memoizedTableBody = useMemo(() => (
+    <TableBody>
+      {users.map((user) => {
+        const isDealer = user.id === dealerId;
+        return (
+          <TableRow key={user.id} className={cn(isDealer && "bg-primary/10")}>
+            <TableCell className="font-semibold text-foreground/90 align-top p-2">
+              <div className="flex flex-col gap-2 items-start">
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-sm w-auto px-1 h-6 rounded-md hover:bg-primary/20 whitespace-nowrap", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
+                      {isDealer && consecutiveWins > 1 ? `連${consecutiveWins-1}` : ''}莊
+                    </button>
+                    {isDealer && (
+                      <button onClick={handleManualConsecutiveWin} className="flex items-center justify-center font-bold text-sm w-auto px-2 h-6 rounded-md bg-blue-200 text-blue-800 hover:bg-blue-300 whitespace-nowrap">
+                        連莊
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Users className="h-4 w-4 text-primary"/>
+                    {user.name}
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenMultiHitDialog(user)}>
+                      一炮多響
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-stretch gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
+                     食胡
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenSpecialActionDialog(user)}>
+                     特別賞罰
+                  </Button>
+                </div>
+                <div className="font-bold text-lg mt-1">
+                    Total: {totalScores[user.id]?.toLocaleString() ?? 0}
+                </div>
+              </div>
+            </TableCell>
+            {users.map(opponent => (
+                <TableCell key={opponent.id} className="font-semibold text-center text-green-600 text-base transition-all duration-300 p-2">
+                    {(user.winValues[opponent.id] || 0).toLocaleString()}
+                </TableCell>
+            ))}
+          </TableRow>
+        );
+      })}
+    </TableBody>
+  ), [users, totalScores, dealerId, consecutiveWins, currentWinnerId, laCounts]);
+
+  const tableOpponentHeaders = useMemo(() => {
+    return (
+        users.map(user => {
+            const laCount = currentWinnerId != null && laCounts[currentWinnerId]?.[user.id];
+            const canSurrender = laCount >= 3;
+            return (
+              <TableHead key={user.id} className="text-center w-[120px] p-2">
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <div>{user.name}</div>
+                    {laCount > 0 && (
+                        <div className="text-red-500 font-bold">拉{laCount}</div>
+                    )}
+                    {canSurrender && (
+                      <Button variant="destructive" size="sm" className="h-6 px-2" onClick={() => handleSurrender(user.id)}>
+                        投降
+                      </Button>
+                    )}
+                  </div>
+              </TableHead>
+            )
+        })
+    );
+  }, [users, laCounts, currentWinnerId]);
+
   if (!isClient) {
     return null;
   }
 
   return (
-    <main className="w-full min-h-screen bg-background flex flex-col">
-      <div className="flex-1 w-full px-2 py-4 sm:px-4 sm:py-6">
-        <div className="w-full max-w-6xl mx-auto">
-          <Tabs value={currentView} onValueChange={(val) => setCurrentView(val as 'game' | 'analytics')} className="w-full">
-            <div className="mb-4 space-y-4">
-            {/* Tab Navigation - Mobile First */}
-            <TabsList className="w-full grid grid-cols-2 gap-1">
-              <TabsTrigger value="game" className="font-bold text-sm sm:text-base py-2 h-10">
-                <Users className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">遊戲</span>
-                <span className="sm:hidden">遊戲</span>
+    <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
+      <div className="w-full max-w-7xl">
+        <Tabs value={currentView} onValueChange={(val) => setCurrentView(val as 'game' | 'analytics')} className="w-full">
+          <div className="mb-4 flex flex-col gap-4">
+            {/* Tab Navigation */}
+            <TabsList className="w-full grid w-full grid-cols-2">
+              <TabsTrigger value="game" className="font-bold">
+                <Users className="mr-2 h-4 w-4" />
+                Game Board
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="font-bold text-sm sm:text-base py-2 h-10">
-                <BarChart3 className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">統計</span>
-                <span className="sm:hidden">統計</span>
+              <TabsTrigger value="analytics" className="font-bold">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
               </TabsTrigger>
             </TabsList>
 
-            {/* Action Buttons - Mobile First */}
-            <header className="w-full">
+            {/* Action Buttons */}
+            <header className="flex flex-col items-center gap-2">
               <Collapsible className="w-full">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-                  <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)} className="h-9">
-                    <Pencil className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">改名</span>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" /> 改名
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)} className="h-9">
-                    <Shuffle className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">換位</span>
+                  <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
+                    <Shuffle className="mr-2 h-4 w-4" /> 換位
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0} className="h-9">
-                    <HistoryIcon className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">還原</span>
+                  <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
+                    <HistoryIcon className="mr-2 h-4 w-4" /> 還原
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleReset} className="h-9">
-                    <RefreshCw className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">重置</span>
+                  <Button variant="outline" size="sm" onClick={handleReset}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> 重置
                   </Button>
                 </div>
-                <CollapsibleContent className="w-full space-y-2 mb-2">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0} className="h-9">
-                      <List className="h-4 w-4" />
-                      <span className="hidden sm:inline ml-1">歷史</span>
+                <CollapsibleContent className="w-full">
+                  <div className="flex gap-2 flex-wrap justify-center mt-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
+                      <List className="mr-2 h-4 w-4" /> 歷史記錄
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0} className="h-9">
-                      <DollarSign className="h-4 w-4" />
-                      <span className="hidden sm:inline ml-1">找數</span>
+                    <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
+                      <DollarSign className="mr-2 h-4 w-4" /> 找數
                     </Button>
-                    <Button 
-                      variant={popOnNewWinner ? "default" : "outline"} 
-                      size="sm" 
-                      onClick={() => setPopOnNewWinner(p => !p)}
-                      className="h-9 col-span-2 sm:col-span-1"
-                    >
-                      <Zap className="h-4 w-4" />
-                      <span className="ml-1 text-xs sm:text-sm">籌碼</span>
+                    <Button variant={popOnNewWinner ? "default" : "outline"} size="sm" onClick={() => setPopOnNewWinner(p => !p)}>
+                      <Zap className="mr-2 h-4 w-4" /> 模式：籌碼
                     </Button>
                   </div>
                 </CollapsibleContent>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full h-9">
+                  <Button variant="ghost" size="sm" className="w-full">
                     <ChevronDown className="h-4 w-4" />
-                    <span className="ml-1 text-xs">更多</span>
+                    <span className="sr-only">Toggle more actions</span>
                   </Button>
                 </CollapsibleTrigger>
               </Collapsible>
             </header>
           </div>
 
-          {/* Game Board Tab - Mobile First */}
-          <TabsContent value="game" className="space-y-3 pb-8">
-            {/* Players Grid - Vertical Stack on Mobile, 2 columns on tablet+ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
-              {users.map((user) => {
-                const isDealer = user.id === dealerId;
-                const laCount = currentWinnerId != null && laCounts[currentWinnerId]?.[user.id];
-                const canSurrender = (laCount || 0) >= 3;
-
-                return (
-                  <PlayerCard
-                    key={user.id}
-                    id={user.id}
-                    name={user.name}
-                    totalScore={totalScores[user.id] || 0}
-                    isDealer={isDealer}
-                    consecutiveWins={consecutiveWins}
-                    opponentScores={user.winValues}
-                    opponentNames={Object.fromEntries(users.map(u => [u.id, u.name]))}
-                    laCount={laCount || 0}
-                    canSurrender={canSurrender}
-                    onDealerClick={() => handleSetDealer(user.id)}
-                    onConsecutiveWinClick={isDealer ? handleManualConsecutiveWin : undefined}
-                    onMultiHitClick={() => handleOpenMultiHitDialog(user)}
-                    onFoodHuClick={() => handleOpenWinActionDialog(user)}
-                    onSpecialActionClick={() => handleOpenSpecialActionDialog(user)}
-                    onSurrender={canSurrender ? () => handleSurrender(user.id) : undefined}
-                  />
-                );
-              })}
-            </div>
+          {/* Game Board Tab */}
+          <TabsContent value="game" className="space-y-4">
+            <Card className="shadow-lg border-primary/10">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px] p-2">玩家</TableHead>
+                        <TableHead colSpan={users.length} className="text-center w-[120px] p-2">番數</TableHead>
+                      </TableRow>
+                      <TableRow>
+                        <TableHead className="p-2"></TableHead>
+                        {tableOpponentHeaders}
+                      </TableRow>
+                    </TableHeader>
+                    {memoizedTableBody}
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -931,10 +994,8 @@ export default function Home() {
             />
           </TabsContent>
         </Tabs>
-        </div>
       </div>
 
-      {/* Dialogs */}
       <RenameDialog
         isOpen={isRenameDialogOpen}
         onClose={() => setIsRenameDialogOpen(false)}
