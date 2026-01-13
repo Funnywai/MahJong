@@ -75,8 +75,12 @@ export function WinActionDialog({
     let laBonus = 0;
 
     const dealerBonusValue = 2 * consecutiveWins - 1;
-    const isNewWinner = mainUser.id !== currentWinnerId && currentWinnerId !== null;
-    const previousWinner = users.find(u => u.id === currentWinnerId);
+    
+    // Check if any OTHER users (not the current winner) have active winValues
+    const usersWithActiveWinValues = users.filter(
+      u => u.id !== mainUser.id && Object.values(u.winValues).some(score => score > 0)
+    );
+    const isNewWinner = usersWithActiveWinValues.length > 0;
 
     if (isZimo) {
         let totalLaBonus = 0;
@@ -93,15 +97,14 @@ export function WinActionDialog({
                 currentScoreForOpponent += dealerBonusValue;
             }
             
-            // La Bonus
-            if (previousWinner && previousWinner.id === mainUser.id) {
-                const previousScore = mainUser.winValues[opponent.id] || 0;
-                if (previousScore > 0) {
-                    const bonus = Math.round(previousScore * 0.5);
-                    totalLaBonus += bonus;
-                }
-            } else if (isNewWinner && previousWinner && opponent.id === previousWinner.id) {
-                 const previousScoreOnWinner = previousWinner.winValues[mainUser.id] || 0;
+            // La Bonus: Check if mainUser had a previous score against this opponent
+            const previousScore = mainUser.winValues[opponent.id] || 0;
+            if (previousScore > 0) {
+                const bonus = Math.round(previousScore * 0.5);
+                totalLaBonus += bonus;
+            } else if (isNewWinner) {
+                // 踢 Bonus: Check if this opponent had a previous score against mainUser
+                const previousScoreOnWinner = opponent.winValues[mainUser.id] || 0;
                 if (previousScoreOnWinner > 0) {
                     totalLaBonus += Math.floor(previousScoreOnWinner / 2);
                 }
@@ -125,17 +128,17 @@ export function WinActionDialog({
             currentScore += dealerBonus;
         }
 
-        // La Bonus
-        if (previousWinner && previousWinner.id === mainUser.id) {
-            const previousScore = mainUser.winValues[parsedTargetId] || 0;
-            if (previousScore > 0) {
-                laBonus = Math.round(previousScore * 0.5);
-            }
-        } else if (isNewWinner && previousWinner && parsedTargetId === previousWinner.id) {
-             const previousScoreOnWinner = previousWinner.winValues[mainUser.id] || 0;
-             if (previousScoreOnWinner > 0) {
+        // La Bonus: Check if mainUser had a previous score against the target
+        const previousScore = mainUser.winValues[parsedTargetId] || 0;
+        if (previousScore > 0) {
+            laBonus = Math.round(previousScore * 0.5);
+        } else if (isNewWinner) {
+            // 踢 Bonus: Check if the target had a previous score against mainUser
+            const targetUser = users.find(u => u.id === parsedTargetId);
+            const previousScoreOnWinner = targetUser?.winValues[mainUser.id] || 0;
+            if (previousScoreOnWinner > 0) {
                 laBonus = Math.floor(previousScoreOnWinner / 2);
-             }
+            }
         }
     }
     
