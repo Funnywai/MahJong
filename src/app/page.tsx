@@ -361,11 +361,19 @@ export default function Home() {
         consecutiveWins,
     };
 
-    const isNewWinner = mainUserId !== currentWinnerId && currentWinnerId !== null;
+    // Check if any OTHER users (not the current winner) have active winValues that need to be reset
+    // This handles the 一炮多響 case where multiple users might have won in the same round
+    const usersWithActiveWinValues = users.filter(
+      u => u.id !== mainUserId && Object.values(u.winValues).some(score => score > 0)
+    );
+    const hasOtherUsersWithScores = usersWithActiveWinValues.length > 0;
+    
+    // isNewWinner is true if there are any other users with scores that need to be reset
+    const isNewWinner = hasOtherUsersWithScores;
     const currentWinner = users.find(u => u.id === mainUserId);
     if (isNewWinner && popOnNewWinner) {
-        const previousWinner = users.find(u => u.id === currentWinnerId);
-        if (previousWinner) {
+        // Show reset dialog for all users with active scores (not just the tracked currentWinnerId)
+        usersWithActiveWinValues.forEach(previousWinner => {
             const hasScores = Object.values(previousWinner.winValues).some(score => score > 0);
 
             if (hasScores) {
@@ -378,7 +386,7 @@ export default function Home() {
                 });
                 setIsResetScoresDialogOpen(true);
             }
-        }
+        });
     }
     
     let finalUsers: UserData[];
@@ -402,18 +410,18 @@ export default function Home() {
         }
 
         let finalValue = currentScore;
-        const previousWinner = users.find(u => u.id === currentWinnerId);
 
-        if (previousWinner && previousWinner.id === mainUserId) {
-            const previousScore = winner?.winValues[targetUserId] || 0;
-            if (previousScore > 0) {
-                const bonus = Math.round(previousScore * 0.5);
-                finalValue = previousScore + bonus + currentScore;
-            }
+        // Check if this winner had a previous score against this loser (consecutive win bonus)
+        const previousScore = winner?.winValues[targetUserId] || 0;
+        if (previousScore > 0) {
+            const bonus = Math.round(previousScore * 0.5);
+            finalValue = previousScore + bonus + currentScore;
         }
 
-        if (isNewWinner && previousWinner && targetUserId === previousWinner.id) {
-            const previousScoreOnWinner = previousWinner.winValues[mainUserId] || 0;
+        // Check if the loser had a previous score against the winner (reverse la bonus)
+        if (isNewWinner) {
+            const loserUser = users.find(u => u.id === targetUserId);
+            const previousScoreOnWinner = loserUser?.winValues[mainUserId] || 0;
             if (previousScoreOnWinner > 0) {
                 finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
             }
@@ -468,7 +476,6 @@ export default function Home() {
         const scoresToAdd: { [opponentId: number]: number } = {};
         let winnerTotalChange = 0;
         const currentScoreChanges: ScoreChange[] = [];
-        const previousWinner = users.find(u => u.id === currentWinnerId);
 
         opponentIds.forEach(opponentId => {
             let currentScore = value;
@@ -480,14 +487,15 @@ export default function Home() {
 
             let finalValue = currentScore;
 
-            if (previousWinner && previousWinner.id === mainUserId) {
-                const previousScore = winner?.winValues[opponentId] || 0;
-                if (previousScore > 0) {
-                    const bonus = Math.round(previousScore * 0.5);
-                    finalValue = previousScore + bonus + currentScore;
-                }
-            } else if (isNewWinner && previousWinner && opponentId === previousWinner.id) {
-                const previousScoreOnWinner = previousWinner.winValues[mainUserId] || 0;
+            // Check if this winner had a previous score against this opponent (consecutive win bonus)
+            const previousScore = winner?.winValues[opponentId] || 0;
+            if (previousScore > 0) {
+                const bonus = Math.round(previousScore * 0.5);
+                finalValue = previousScore + bonus + currentScore;
+            } else if (isNewWinner) {
+                // Check if this opponent had a previous score against the winner (reverse la bonus)
+                const opponentUser = users.find(u => u.id === opponentId);
+                const previousScoreOnWinner = opponentUser?.winValues[mainUserId] || 0;
                 if (previousScoreOnWinner > 0) {
                     finalValue = Math.floor(previousScoreOnWinner / 2) + currentScore;
                 }
