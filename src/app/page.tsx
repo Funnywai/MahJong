@@ -31,6 +31,7 @@ import { SeatChangeDialog } from '@/app/components/seat-change-dialog';
 import { ResetScoresDialog } from '@/app/components/reset-scores-dialog';
 import { PayoutDialog } from '@/app/components/payout-dialog';
 import { SpecialActionDialog } from '@/app/components/special-action-dialog';
+import { MultiHitDialog } from '@/app/components/multi-hit-dialog';
 import { ScoreAnalyticsDashboard } from '@/app/components/score-analytics-dashboard';
 import { cn } from '@/lib/utils';
 
@@ -114,9 +115,11 @@ export default function Home() {
   const [isResetScoresDialogOpen, setIsResetScoresDialogOpen] = useState(false);
   const [isPayoutDialogOpen, setIsPayoutDialogOpen] = useState(false);
   const [isSpecialActionDialogOpen, setIsSpecialActionDialogOpen] = useState(false);
+  const [isMultiHitDialogOpen, setIsMultiHitDialogOpen] = useState(false);
 
 
   const [currentUserForWinAction, setCurrentUserForWinAction] = useState<UserData | null>(null);
+  const [currentUserForMultiHit, setCurrentUserForMultiHit] = useState<UserData | null>(null);
 
   const [dealerId, setDealerId] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -221,6 +224,11 @@ export default function Home() {
   const handleOpenSpecialActionDialog = (user: UserData) => {
     setCurrentUserForWinAction(user);
     setIsSpecialActionDialogOpen(true);
+  };
+
+  const handleOpenMultiHitDialog = (user: UserData) => {
+    setCurrentUserForMultiHit(user);
+    setIsMultiHitDialogOpen(true);
   };
 
   const handleExecuteZhaHuAction = (mainUserId: number, payouts: Payouts) => {
@@ -535,6 +543,110 @@ export default function Home() {
     executeWinAction(mainUserId, value, targetUserId);
   };
 
+  const handleExecuteMultiHitAction = (loserUserId: number, winnerIds: number[], value: number) => {
+    // Capture the state BEFORE any changes for the history log.
+    const currentStateForHistory: Omit<GameState, 'action' | 'scoreChanges'> = {
+      users: JSON.parse(JSON.stringify(users)),
+      laCounts: JSON.parse(JSON.stringify(laCounts)),
+      currentWinnerId,
+      dealerId,
+      consecutiveWins,
+    };
+
+    const loser = users.find(u => u.id === loserUserId);
+    if (!loser || winnerIds.length < 2 || winnerIds.length > 3) return;
+
+    let actionDescription = `一炮多響: ${loser.name} 被 ${winnerIds.map(id => users.find(u => u.id === id)?.name).join(', ')} 食胡 ${value}番`;
+
+    const scoreChanges: ScoreChange[] = [];
+    let newLaCounts = laCounts;
+    let finalUsers = JSON.parse(JSON.stringify(users));
+    
+    const dealerBonusValue = 2 * consecutiveWins - 1;
+    const previousWinner = users.find(u => u.id === currentWinnerId);
+
+    // Process each winner
+    winnerIds.forEach(winnerId => {
+      const winner = users.find(u => u.id === winnerId);
+      if (!winner) return;
+
+      let currentScore = value;
+
+      // Dealer bonus logic
+      if (winnerId === dealerId) {
+        currentScore += dealerBonusValue;
+      } else if (loserUserId === dealerId) {
+        currentScore += dealerBonusValue;
+      }
+
+      // La bonus logic (拉)
+      let laBonus = 0;
+      if (previousWinner && previousWinner.id === winnerId) {
+        const previousScore = winner.winValues[loserUserId] || 0;
+        if (previousScore > 0) {
+          laBonus = Math.round(previousScore * 0.5);
+          currentScore += laBonus;
+        }
+      } else if (winnerId !== currentWinnerId && currentWinnerId !== null && previousWinner && loserUserId === previousWinner.id) {
+        const previousScoreOnLoser = previousWinner.winValues[winnerId] || 0;
+        if (previousScoreOnLoser > 0) {
+          laBonus = Math.floor(previousScoreOnLoser / 2);
+          currentScore += laBonus;
+        }
+      }
+
+      // Update winner's win values
+      const finalUser = finalUsers.find((u: UserData) => u.id === winnerId);
+      if (finalUser) {
+        const previousValue = finalUser.winValues[loserUserId] || 0;
+        finalUser.winValues[loserUserId] = previousValue + currentScore;
+        
+        // Score change tracking
+        scoreChanges.push({ userId: winnerId, change: currentScore });
+      }
+
+      // Update la counts
+      newLaCounts = updateLaCounts(winnerId, [loserUserId], newLaCounts, currentWinnerId);
+    });
+
+    // Update loser's win values (they're negative from all winners' perspective)
+    const loserUser = finalUsers.find((u: UserData) => u.id === loserUserId);
+    if (loserUser) {
+      scoreChanges.forEach(change => {
+        if (change.userId !== loserUserId) {
+          loserUser.winValues[change.userId] = 0;
+        }
+      });
+    }
+
+    // Calculate total change for loser
+    const totalLoserChange = scoreChanges.reduce((sum, change) => sum + change.change, 0);
+    scoreChanges.push({ userId: loserUserId, change: -totalLoserChange });
+
+    // Update dealer logic - for multi-hit, the first winner becomes the new current winner
+    const firstWinnerId = winnerIds[0];
+    const { newDealerId, newConsecutiveWins } = handleWin(firstWinnerId, dealerId, consecutiveWins);
+
+    setUsers(finalUsers);
+    setLaCounts(newLaCounts);
+    setCurrentWinnerId(firstWinnerId);
+    setDealerId(newDealerId);
+    setConsecutiveWins(newConsecutiveWins);
+
+    const newHistory = saveStateToHistory(actionDescription, scoreChanges, currentStateForHistory);
+
+    saveGameData({
+      users: finalUsers,
+      history: newHistory,
+      dealerId: newDealerId,
+      consecutiveWins: newConsecutiveWins,
+      currentWinnerId: firstWinnerId,
+      laCounts: newLaCounts,
+    });
+
+    setIsMultiHitDialogOpen(false);
+  };
+
   const handleSaveUserNames = (updatedUsers: { id: number; name: string }[]) => {
     const newUsers = users.map((user) => {
       const updatedUser = updatedUsers.find((u) => u.id === user.id);
@@ -690,6 +802,9 @@ export default function Home() {
                 <div className="flex items-stretch gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
                      食胡
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenMultiHitDialog(user)}>
+                     一炮多響
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleOpenSpecialActionDialog(user)}>
                      特別賞罰
@@ -864,6 +979,18 @@ export default function Home() {
           users={users}
           onSave={handleExecuteSpecialAction}
           onSaveZhaHu={handleExecuteZhaHuAction}
+        />
+       )}
+       {currentUserForMultiHit && (
+        <MultiHitDialog
+          isOpen={isMultiHitDialogOpen}
+          onClose={() => setIsMultiHitDialogOpen(false)}
+          loser={currentUserForMultiHit}
+          users={users}
+          dealerId={dealerId}
+          consecutiveWins={consecutiveWins}
+          currentWinnerId={currentWinnerId}
+          onSave={handleExecuteMultiHitAction}
         />
        )}
        <HistoryDialog
