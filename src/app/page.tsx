@@ -830,42 +830,42 @@ export default function Home() {
         const isDealer = user.id === dealerId;
         return (
           <TableRow key={user.id} className={cn(isDealer && "bg-primary/10")}>
-            <TableCell className="font-semibold text-foreground/90 align-top p-2">
-              <div className="flex flex-col gap-2 items-start">
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-sm w-auto px-1 h-6 rounded-md hover:bg-primary/20 whitespace-nowrap", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
+            <TableCell className="sticky left-0 z-10 bg-background/95 backdrop-blur-sm font-semibold text-foreground/90 align-top p-3 sm:p-4">
+              <div className="flex flex-col gap-3 items-start w-[140px] sm:w-[170px] md:w-[190px]">
+                <div className="flex flex-col items-start gap-2 w-full">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button onClick={() => handleSetDealer(user.id)} className={cn("flex items-center justify-center font-bold text-xs sm:text-sm min-h-[40px] px-3 py-2 rounded-md hover:bg-primary/20 whitespace-nowrap touch-manipulation active:scale-95 transition-transform", isDealer ? "bg-yellow-400 text-yellow-800" : "bg-gray-200 text-gray-500")}>
                       {isDealer && consecutiveWins > 1 ? `連${consecutiveWins-1}` : ''}莊
                     </button>
                     {isDealer && (
-                      <button onClick={handleManualConsecutiveWin} className="flex items-center justify-center font-bold text-sm w-auto px-2 h-6 rounded-md bg-blue-200 text-blue-800 hover:bg-blue-300 whitespace-nowrap">
+                      <button onClick={handleManualConsecutiveWin} className="flex items-center justify-center font-bold text-xs sm:text-sm min-h-[40px] px-3 py-2 rounded-md bg-blue-200 text-blue-800 hover:bg-blue-300 whitespace-nowrap touch-manipulation active:scale-95 transition-transform">
                         連莊
                       </button>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Users className="h-4 w-4 text-primary"/>
-                    {user.name}
-                    <Button variant="secondary" size="sm" onClick={() => handleOpenMultiHitDialog(user)}>
-                      一炮多響
-                    </Button>
+                  <div className="flex items-center gap-2 flex-wrap w-full">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0"/>
+                    <span className="text-sm sm:text-base font-semibold truncate">{user.name}</span>
                   </div>
+                  <Button variant="secondary" size="default" className="min-h-[44px] w-full text-xs sm:text-sm px-2 touch-manipulation active:scale-95 transition-transform" onClick={() => handleOpenMultiHitDialog(user)}>
+                      一炮多響
+                  </Button>
                 </div>
-                <div className="flex items-stretch gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenWinActionDialog(user)}>
+                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full">
+                  <Button variant="outline" size="default" className="min-h-[44px] flex-1 text-xs sm:text-sm touch-manipulation active:scale-95 transition-transform" onClick={() => handleOpenWinActionDialog(user)}>
                      食胡
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenSpecialActionDialog(user)}>
+                  <Button variant="outline" size="default" className="min-h-[44px] flex-1 text-xs sm:text-sm touch-manipulation active:scale-95 transition-transform" onClick={() => handleOpenSpecialActionDialog(user)}>
                      特別賞罰
                   </Button>
                 </div>
-                <div className="font-bold text-lg mt-1">
+                <div className="font-bold text-base sm:text-lg mt-1 w-full">
                     Total: {totalScores[user.id]?.toLocaleString() ?? 0}
                 </div>
               </div>
             </TableCell>
             {users.map(opponent => (
-                <TableCell key={opponent.id} className="font-semibold text-center text-green-600 text-base transition-all duration-300 p-2">
+                <TableCell key={opponent.id} className="font-semibold text-center text-green-600 text-base sm:text-lg md:text-xl transition-all duration-300 p-3 sm:p-4 min-w-[100px] sm:min-w-[120px] md:min-w-[140px]">
                     {(user.winValues[opponent.id] || 0).toLocaleString()}
                 </TableCell>
             ))}
@@ -881,14 +881,14 @@ export default function Home() {
             const laCount = currentWinnerId != null && laCounts[currentWinnerId]?.[user.id];
             const canSurrender = laCount >= 3;
             return (
-              <TableHead key={user.id} className="text-center w-[120px] p-2">
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <div>{user.name}</div>
+              <TableHead key={user.id} className="text-center min-w-[100px] sm:min-w-[120px] md:min-w-[140px] p-3 sm:p-4">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="text-sm sm:text-base font-semibold">{user.name}</div>
                     {laCount > 0 && (
-                        <div className="text-red-500 font-bold">拉{laCount}</div>
+                        <div className="text-red-500 font-bold text-sm sm:text-base">拉{laCount}</div>
                     )}
                     {canSurrender && (
-                      <Button variant="destructive" size="sm" className="h-6 px-2" onClick={() => handleSurrender(user.id)}>
+                      <Button variant="destructive" size="default" className="min-h-[40px] px-3 text-xs sm:text-sm touch-manipulation active:scale-95 transition-transform" onClick={() => handleSurrender(user.id)}>
                         投降
                       </Button>
                     )}
@@ -904,55 +904,55 @@ export default function Home() {
   }
 
   return (
-    <main className="container mx-auto flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-6">
-      <div className="w-full max-w-7xl">
+    <main className="container mx-auto flex min-h-screen flex-col items-center p-3 sm:p-4 md:p-6 lg:p-8">
+      <div className="w-full">
         <Tabs value={currentView} onValueChange={(val) => setCurrentView(val as 'game' | 'analytics')} className="w-full">
-          <div className="mb-4 flex flex-col gap-4">
+          <div className="mb-3 sm:mb-4 md:mb-6 flex flex-col gap-3 sm:gap-4">
             {/* Tab Navigation */}
-            <TabsList className="w-full grid w-full grid-cols-2">
-              <TabsTrigger value="game" className="font-bold">
-                <Users className="mr-2 h-4 w-4" />
+            <TabsList className="grid w-full grid-cols-2 h-12 sm:h-11 md:h-10">
+              <TabsTrigger value="game" className="font-bold text-sm sm:text-base">
+                <Users className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                 Game Board
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="font-bold">
-                <BarChart3 className="mr-2 h-4 w-4" />
+              <TabsTrigger value="analytics" className="font-bold text-sm sm:text-base">
+                <BarChart3 className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                 Analytics
               </TabsTrigger>
             </TabsList>
 
             {/* Action Buttons */}
-            <header className="flex flex-col items-center gap-2">
+            <header className="flex flex-col items-center gap-3">
               <Collapsible className="w-full">
-                <div className="flex gap-2 flex-wrap justify-center">
-                  <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
-                    <Pencil className="mr-2 h-4 w-4" /> 改名
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 justify-center items-center">
+                  <Button variant="outline" size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={() => setIsRenameDialogOpen(true)}>
+                    <Pencil className="mr-1 sm:mr-2 h-4 w-4" /> 改名
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsSeatChangeDialogOpen(true)}>
-                    <Shuffle className="mr-2 h-4 w-4" /> 換位
+                  <Button variant="outline" size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={() => setIsSeatChangeDialogOpen(true)}>
+                    <Shuffle className="mr-1 sm:mr-2 h-4 w-4" /> 換位
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleRestore} disabled={history.length === 0}>
-                    <HistoryIcon className="mr-2 h-4 w-4" /> 還原
+                  <Button variant="outline" size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={handleRestore} disabled={history.length === 0}>
+                    <HistoryIcon className="mr-1 sm:mr-2 h-4 w-4" /> 還原
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleReset}>
-                    <RefreshCw className="mr-2 h-4 w-4" /> 重置
+                  <Button variant="outline" size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={handleReset}>
+                    <RefreshCw className="mr-1 sm:mr-2 h-4 w-4" /> 重置
                   </Button>
                 </div>
                 <CollapsibleContent className="w-full">
-                  <div className="flex gap-2 flex-wrap justify-center mt-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
-                      <List className="mr-2 h-4 w-4" /> 歷史記錄
+                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 justify-center mt-3 items-center">
+                    <Button variant="outline" size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={() => setIsHistoryDialogOpen(true)} disabled={history.length === 0}>
+                      <List className="mr-1 sm:mr-2 h-4 w-4" /> 歷史記錄
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
-                      <DollarSign className="mr-2 h-4 w-4" /> 找數
+                    <Button variant="outline" size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={() => setIsPayoutDialogOpen(true)} disabled={history.length === 0}>
+                      <DollarSign className="mr-1 sm:mr-2 h-4 w-4" /> 找數
                     </Button>
-                    <Button variant={popOnNewWinner ? "default" : "outline"} size="sm" onClick={() => setPopOnNewWinner(p => !p)}>
-                      <Zap className="mr-2 h-4 w-4" /> 模式：籌碼
+                    <Button variant={popOnNewWinner ? "default" : "outline"} size="lg" className="min-h-[48px] sm:min-h-[44px] px-4 text-sm sm:text-base touch-manipulation" onClick={() => setPopOnNewWinner(p => !p)}>
+                      <Zap className="mr-1 sm:mr-2 h-4 w-4" /> 模式：籌碼
                     </Button>
                   </div>
                 </CollapsibleContent>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full">
-                    <ChevronDown className="h-4 w-4" />
+                  <Button variant="ghost" size="lg" className="w-full min-h-[48px] sm:min-h-[44px] mt-2 touch-manipulation">
+                    <ChevronDown className="h-5 w-5" />
                     <span className="sr-only">Toggle more actions</span>
                   </Button>
                 </CollapsibleTrigger>
@@ -962,17 +962,17 @@ export default function Home() {
 
           {/* Game Board Tab */}
           <TabsContent value="game" className="space-y-4">
-            <Card className="shadow-lg border-primary/10">
+            <Card className="shadow-lg border-primary/10 rounded-lg overflow-hidden">
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-3 sm:mx-0 scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[120px] p-2">玩家</TableHead>
-                        <TableHead colSpan={users.length} className="text-center w-[120px] p-2">番數</TableHead>
+                        <TableHead className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm w-[150px] sm:w-[180px] md:w-[200px] p-3 sm:p-4 text-sm sm:text-base font-bold">玩家</TableHead>
+                        <TableHead colSpan={users.length} className="text-center p-3 sm:p-4 text-sm sm:text-base font-bold">番數</TableHead>
                       </TableRow>
                       <TableRow>
-                        <TableHead className="p-2"></TableHead>
+                        <TableHead className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm p-3 sm:p-4"></TableHead>
                         {tableOpponentHeaders}
                       </TableRow>
                     </TableHeader>
