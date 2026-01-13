@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -30,7 +29,7 @@ interface MultiHitDialogProps {
   dealerId: number;
   consecutiveWins: number;
   currentWinnerId: number | null;
-  onSave: (loserUserId: number, winners: number[], value: number) => void;
+  onSave: (loserUserId: number, winners: number[], values: Record<number, number>) => void;
 }
 
 interface ScorePreview {
@@ -53,12 +52,12 @@ export function MultiHitDialog({
   onSave,
 }: MultiHitDialogProps) {
   const [selectedWinners, setSelectedWinners] = useState<number[]>([]);
-  const [value, setValue] = useState<string>('');
+  const [winnerValues, setWinnerValues] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (isOpen) {
       setSelectedWinners([]);
-      setValue('');
+      setWinnerValues({});
     }
   }, [isOpen]);
 
@@ -67,7 +66,13 @@ export function MultiHitDialog({
   const toggleWinner = (userId: number) => {
     setSelectedWinners(prev => {
       if (prev.includes(userId)) {
-        return prev.filter(id => id !== userId);
+        const next = prev.filter(id => id !== userId);
+        setWinnerValues(values => {
+          const updated = { ...values };
+          delete updated[userId];
+          return updated;
+        });
+        return next;
       } else {
         if (prev.length < 3) {
           return [...prev, userId];
@@ -77,12 +82,11 @@ export function MultiHitDialog({
     });
   };
 
-  const scoresPreviews = useMemo<ScorePreview[]>(() => {
-    const parsedValue = parseInt(value, 10);
-    if (isNaN(parsedValue) || parsedValue <= 0 || selectedWinners.length === 0) {
-      return [];
-    }
+  const handleValueChange = (winnerId: number, val: string) => {
+    setWinnerValues(prev => ({ ...prev, [winnerId]: val }));
+  };
 
+  const scoresPreviews = useMemo<ScorePreview[]>(() => {
     const previews: ScorePreview[] = [];
     const dealerBonusValue = 2 * consecutiveWins - 1;
     const previousWinner = users.find(u => u.id === currentWinnerId);
@@ -90,6 +94,9 @@ export function MultiHitDialog({
     selectedWinners.forEach(winnerId => {
       const winner = users.find(u => u.id === winnerId);
       if (!winner) return;
+
+      const parsedValue = parseInt(winnerValues[winnerId] || '', 10);
+      if (isNaN(parsedValue) || parsedValue <= 0) return;
 
       let base = parsedValue;
       let dealerBonus = 0;
@@ -130,30 +137,30 @@ export function MultiHitDialog({
     });
 
     return previews;
-  }, [value, selectedWinners, loser, users, dealerId, consecutiveWins, currentWinnerId]);
+  }, [selectedWinners, loser, users, dealerId, consecutiveWins, currentWinnerId, winnerValues]);
 
   const handleSave = () => {
-    if (value && selectedWinners.length >= 2 && selectedWinners.length <= 3) {
-      onSave(loser.id, selectedWinners, parseInt(value, 10));
-      onClose();
-    }
-  };
+    if (selectedWinners.length < 2 || selectedWinners.length > 3) return;
 
-  const handleNumpadClick = (num: string) => {
-    setValue(prev => prev + num);
-  };
+    const parsedValues: Record<number, number> = {};
+    let allValid = true;
 
-  const handleClear = () => {
-    setValue('');
-  };
+    selectedWinners.forEach(id => {
+      const parsed = parseInt(winnerValues[id] || '', 10);
+      if (isNaN(parsed) || parsed <= 0) {
+        allValid = false;
+      } else {
+        parsedValues[id] = parsed;
+      }
+    });
 
-  const handleBackspace = () => {
-    setValue(prev => prev.slice(0, -1));
+    if (!allValid) return;
+
+    onSave(loser.id, selectedWinners, parsedValues);
+    onClose();
   };
 
   if (!loser) return null;
-
-  const numpadButtons = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -198,34 +205,29 @@ export function MultiHitDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="value-input">番數:</Label>
-            <Input
-              id="value-input"
-              type="number"
-              inputMode="none"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="Enter a number"
-              className="text-center text-lg h-12"
-            />
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {numpadButtons.map(num => (
-                <Button key={num} variant="outline" size="lg" onClick={() => handleNumpadClick(num)}>
-                  {num}
-                </Button>
-              ))}
-              <Button variant="outline" size="lg" onClick={handleClear}>
-                清除
-              </Button>
-              <Button variant="outline" size="lg" onClick={() => handleNumpadClick('0')}>
-                0
-              </Button>
-              <Button variant="outline" size="lg" onClick={handleBackspace}>
-                <X className="h-5 w-5" />
-              </Button>
+          {selectedWinners.length > 0 && (
+            <div className="space-y-3">
+              <Label>番數 (每位贏家可不同):</Label>
+              <div className="space-y-2">
+                {selectedWinners.map((winnerId, idx) => {
+                  const winner = users.find(u => u.id === winnerId);
+                  return (
+                    <div key={winnerId} className="flex items-center gap-2">
+                      <Badge variant="secondary" className="min-w-7 justify-center">{idx + 1}</Badge>
+                      <span className="min-w-[80px] text-sm font-semibold">{winner?.name}</span>
+                      <Input
+                        type="number"
+                        value={winnerValues[winnerId] || ''}
+                        onChange={(e) => handleValueChange(winnerId, e.target.value)}
+                        placeholder="番數"
+                        className="h-10"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {scoresPreviews.length > 0 && (
             <Card className="bg-secondary/50">
@@ -266,7 +268,7 @@ export function MultiHitDialog({
           <Button
             type="submit"
             onClick={handleSave}
-            disabled={!value || selectedWinners.length < 2 || selectedWinners.length > 3}
+            disabled={selectedWinners.length < 2 || selectedWinners.length > 3}
           >
             確定
           </Button>
