@@ -95,12 +95,13 @@ export function PayoutDialog({ isOpen, onClose, users, totalScores }: PayoutDial
                     <TableCell className="text-right">{total.toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <Input
-                        type="number"
+                        type="text"
                         inputMode="decimal"
                         value={adjustmentRaw}
                         onChange={(e) => handleAdjustmentChange(user.id, e.target.value)}
-                        placeholder="0"
+                        placeholder="0 或 -10"
                         className="h-9 text-right"
+                        aria-label="其他金額"
                       />
                     </TableCell>
                     <TableCell

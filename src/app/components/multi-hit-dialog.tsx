@@ -181,9 +181,6 @@ export function MultiHitDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>一炮多響</DialogTitle>
-          <DialogDescription>
-            先選輸家，再點選2-3位贏家並填入番數。
-          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

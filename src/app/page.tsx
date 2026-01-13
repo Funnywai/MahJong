@@ -921,7 +921,6 @@ export default function Home() {
             <header className="flex items-center justify-between gap-2 rounded-lg border bg-card/60 p-3">
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">常用動作</p>
-                <p className="text-xs text-muted-foreground">食胡彈窗內可直接切到一炮多響，頭部 More 收起次要功能。</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1060,6 +1059,7 @@ export default function Home() {
         users={users}
         dealerId={dealerId}
         consecutiveWins={consecutiveWins}
+        currentWinnerId={currentWinnerId}
         onSave={handleExecuteMultiHitAction}
       />
        <HistoryDialog
